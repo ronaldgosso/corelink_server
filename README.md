@@ -26,3 +26,13 @@ We use [Infisical](https://infisical.com/) to securely manage and sync environme
    ```
 
 For the complete guide on sharing secrets, personal overrides, exporting `.env` files, Docker, and CI/CD setups, see [INFISICAL.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/INFISICAL.md).
+
+## Deployment (Vercel)
+
+The server is configured for serverless deployment on Vercel.
+
+- **Live URL:** [https://corelink-server.vercel.app](https://corelink-server.vercel.app)
+- **Health Check:** [https://corelink-server.vercel.app/api/health](https://corelink-server.vercel.app/api/health)
+
+For full deployment instructions, environment variable setups, and CLI workflows, see [VERCEL.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/VERCEL.md).
+

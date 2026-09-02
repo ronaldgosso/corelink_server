@@ -56,6 +56,7 @@
 | Document | Purpose |
 | :--- | :--- |
 | 📖 [**BACKEND_API_GUIDE.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/BACKEND_API_GUIDE.md) | Full Backend API guide, **Supabase SQL DDL, RLS policies, indexes**, and Cloudflare Worker script. |
+| 🗄️ [**supabase/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/supabase/README.md) | Supabase PostgreSQL schema, RLS policies, atomic claim function, and performance indexes. |
 | ⚡ [**cloudflare-worker/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/cloudflare-worker/README.md) | Cloudflare Worker Cron Trigger engine setup, Wrangler CLI configuration, and edge deployment. |
 | 🔑 [**INFISICAL.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/INFISICAL.md) | Guide to syncing & sharing `.env` variables across the team with Infisical CLI. |
 | ☁️ [**VERCEL.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/VERCEL.md) | Serverless Express deployment on Vercel, live URLs, logs, and cron configurations. |

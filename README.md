@@ -44,4 +44,13 @@ Ready-to-use API collection for **Sign In with LinkedIn (OpenID Connect)** and *
 - **Environment:** [`postman/LinkedIn_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_Environment.json)
 - **Comprehensive API Guide:** [LINKEDIN_API_GUIDE.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/LINKEDIN_API_GUIDE.md)
 
+## Centralized Backend API & Supabase Gateway (Postman & Hoppscotch)
+
+Centralized API gateway for all mobile client requests, Supabase database operations, Mistral AI generation, and background publishing:
+
+- **Collection:** [`postman/Corelink_Backend_API_Collection.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/Corelink_Backend_API_Collection.json)
+- **Environment:** [`postman/Corelink_Backend_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/Corelink_Backend_Environment.json)
+- **Architecture & API Guide:** [BACKEND_API_GUIDE.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/BACKEND_API_GUIDE.md)
+
+
 

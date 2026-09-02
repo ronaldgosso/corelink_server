@@ -1,9 +1,3 @@
--- =============================================================================
--- Corelink Server - Supabase Database Schema & Migration
--- Purpose: LinkedIn AI Post Scheduler Backend Database
--- Compatible with: Supabase PostgreSQL (with RLS, Realtime & Custom Functions)
--- =============================================================================
-
 -- 1. EXTENSIONS
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

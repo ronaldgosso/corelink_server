@@ -55,6 +55,7 @@
 
 | Document | Purpose |
 | :--- | :--- |
+| 🌟 [**PROJECT_DOCUMENTATION.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/PROJECT_DOCUMENTATION.md) | **Master Project Specification**: Full mobile app, backend, web dashboard, architecture, UI/UX design tokens & layman guide. |
 | 📖 [**BACKEND_API_GUIDE.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/BACKEND_API_GUIDE.md) | Full Backend API guide, **Supabase SQL DDL, RLS policies, indexes**, and Cloudflare Worker script. |
 | 🗄️ [**supabase/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/supabase/README.md) | Supabase PostgreSQL schema, RLS policies, atomic claim function, and performance indexes. |
 | ⚡ [**cloudflare-worker/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/cloudflare-worker/README.md) | Cloudflare Worker Cron Trigger engine setup, Wrangler CLI configuration, and edge deployment. |

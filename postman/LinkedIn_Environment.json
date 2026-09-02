@@ -1,0 +1,115 @@
+{
+  "id": "e4b2d1c9-7a5f-4d3b-9e1a-8c7b6a5d4e3f",
+  "name": "LinkedIn API - Environment",
+  "values": [
+    {
+      "key": "client_id",
+      "value": "77wtiyb9nrkwzr",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "client_secret",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "redirect_uri",
+      "value": "http://localhost:5000/api/auth/linkedin/callback",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "state",
+      "value": "corelink_secure_state_12345",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "auth_code",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "person_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "person_urn",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "organization_id",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "linkedin_version",
+      "value": "202401",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "last_post_urn",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "image_upload_url",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "image_asset_urn",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "video_upload_url",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "video_asset_urn",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "document_upload_url",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "document_asset_urn",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

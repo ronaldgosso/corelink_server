@@ -36,3 +36,12 @@ The server is configured for serverless deployment on Vercel.
 
 For full deployment instructions, environment variable setups, and CLI workflows, see [VERCEL.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/VERCEL.md).
 
+## LinkedIn API Collection (Postman & Hoppscotch)
+
+Ready-to-use API collection for **Sign In with LinkedIn (OpenID Connect)** and **Share on LinkedIn (REST Posts & Media API)**:
+
+- **Collection:** [`postman/LinkedIn_API_Collection.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_API_Collection.json)
+- **Environment:** [`postman/LinkedIn_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_Environment.json)
+- **Comprehensive API Guide:** [LINKEDIN_API_GUIDE.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/LINKEDIN_API_GUIDE.md)
+
+

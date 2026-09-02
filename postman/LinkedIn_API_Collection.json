@@ -1,0 +1,1043 @@
+{
+  "info": {
+    "_postman_id": "8f3b2d1c-9a4e-4f7b-8c6e-1d5a7b9c3e2f",
+    "name": "LinkedIn API - Sign In & Share on LinkedIn",
+    "description": "# LinkedIn API Collection (Sign In with LinkedIn & Share on LinkedIn)\n\nThis collection contains all official REST & OAuth 2.0 endpoints for **Sign In with LinkedIn (OpenID Connect)** and **Share on LinkedIn (REST Posts & Media API)**.\n\n### 🚀 Features Covered:\n1. **Authentication (OAuth 2.0 / OpenID Connect)**: Authorization URL, Token Exchange, Refresh Token, Token Introspection, Revocation.\n2. **User Profile (Sign In with LinkedIn)**: OpenID Connect UserInfo (`/v2/userinfo`), Member Details.\n3. **Share on LinkedIn (REST Posts API)**:\n   - Text Posts\n   - Link / Article Shares\n   - Image Posts (3-step upload & post flow)\n   - Video Posts (upload initialization, binary upload & finalize)\n   - Document / PDF Carousel Posts\n   - Retrieve Posts (single post by URN, feed/author posts)\n   - Delete Posts\n4. **Company / Organization Page Sharing**: Organization posts with `urn:li:organization:{id}`.\n\n### 🔧 Compatibility:\n- Fully compatible with **Postman** and **Hoppscotch** (Postman v2.1.0 Schema).\n- Uses environment variables like `{{client_id}}`, `{{client_secret}}`, `{{redirect_uri}}`, `{{access_token}}`, `{{person_id}}`, etc.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication & OAuth 2.0 (Sign In)",
+      "description": "Endpoints to authenticate users, exchange authorization codes for access tokens, refresh tokens, and manage token lifecycles.",
+      "item": [
+        {
+          "name": "1.1 Get Authorization URL (Browser Step)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id={{client_id}}&redirect_uri={{redirect_uri}}&state={{state}}&scope=openid%20profile%20email%20w_member_social%20w_organization_social",
+              "protocol": "https",
+              "host": ["www", "linkedin", "com"],
+              "path": ["oauth", "v2", "authorization"],
+              "query": [
+                {
+                  "key": "response_type",
+                  "value": "code",
+                  "description": "Must be set to 'code' for Authorization Code grant"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}",
+                  "description": "Your LinkedIn Application Client ID"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{redirect_uri}}",
+                  "description": "Must exactly match one of the redirect URIs in your LinkedIn App Settings"
+                },
+                {
+                  "key": "state",
+                  "value": "{{state}}",
+                  "description": "A random unique string to protect against CSRF attacks"
+                },
+                {
+                  "key": "scope",
+                  "value": "openid profile email w_member_social w_organization_social",
+                  "description": "Space-delimited permissions list. 'openid profile email' for Sign In; 'w_member_social' for personal posts; 'w_organization_social' for organization posts."
+                }
+              ]
+            },
+            "description": "### Step 1: User Authorization\n\nOpen this URL in a browser. The user logs in and consents to the requested scopes. Upon successful login, LinkedIn redirects to your `redirect_uri` with a `code` query parameter:\n\n`https://your-redirect-uri?code=AQU...&state=xyz`\n\nCopy the `code` value into your `{{auth_code}}` environment variable for the next step."
+          },
+          "response": []
+        },
+        {
+          "name": "1.2 Exchange Auth Code for Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.environment.set(\"access_token\", jsonData.access_token);",
+                  "}",
+                  "if (jsonData.refresh_token) {",
+                  "    pm.environment.set(\"refresh_token\", jsonData.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "authorization_code",
+                  "type": "text",
+                  "description": "Fixed value: authorization_code"
+                },
+                {
+                  "key": "code",
+                  "value": "{{auth_code}}",
+                  "type": "text",
+                  "description": "The authorization code received in the redirect step"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}",
+                  "type": "text",
+                  "description": "Your LinkedIn App Client ID"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}",
+                  "type": "text",
+                  "description": "Your LinkedIn App Client Secret"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "{{redirect_uri}}",
+                  "type": "text",
+                  "description": "Must match the redirect_uri used in the authorization request"
+                }
+              ]
+            },
+            "url": {
+              "raw": "https://www.linkedin.com/oauth/v2/accessToken",
+              "protocol": "https",
+              "host": ["www", "linkedin", "com"],
+              "path": ["oauth", "v2", "accessToken"]
+            },
+            "description": "### Step 2: Token Exchange\n\nExchanges the temporary `authorization_code` for a long-lived `access_token`.\n\n**Response:**\n```json\n{\n  \"access_token\": \"AQV...\",\n  \"expires_in\": 5183999,\n  \"scope\": \"openid,profile,email,w_member_social\",\n  \"token_type\": \"Bearer\",\n  \"id_token\": \"eyJ...\"\n}\n```\n*Note: The Postman test script automatically saves `access_token` and `refresh_token` into your environment variables.*"
+          },
+          "response": []
+        },
+        {
+          "name": "1.3 Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.environment.set(\"access_token\", jsonData.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "refresh_token",
+                  "type": "text",
+                  "description": "Fixed value: refresh_token"
+                },
+                {
+                  "key": "refresh_token",
+                  "value": "{{refresh_token}}",
+                  "type": "text",
+                  "description": "The refresh token provided during the initial token exchange"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}",
+                  "type": "text",
+                  "description": "Your LinkedIn App Client ID"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}",
+                  "type": "text",
+                  "description": "Your LinkedIn App Client Secret"
+                }
+              ]
+            },
+            "url": {
+              "raw": "https://www.linkedin.com/oauth/v2/accessToken",
+              "protocol": "https",
+              "host": ["www", "linkedin", "com"],
+              "path": ["oauth", "v2", "accessToken"]
+            },
+            "description": "### Step 3: Refresh Access Token\n\nRefreshes an expired or expiring access token using the stored `refresh_token` without requiring the user to re-authenticate through the browser."
+          },
+          "response": []
+        },
+        {
+          "name": "1.4 Introspect Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}",
+                  "type": "text"
+                },
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "text",
+                  "description": "The token to inspect"
+                }
+              ]
+            },
+            "url": {
+              "raw": "https://www.linkedin.com/oauth/v2/introspectToken",
+              "protocol": "https",
+              "host": ["www", "linkedin", "com"],
+              "path": ["oauth", "v2", "introspectToken"]
+            },
+            "description": "### Token Introspection\n\nChecks whether an access token is active, its expiration time, associated client ID, and authorized scopes."
+          },
+          "response": []
+        },
+        {
+          "name": "1.5 Revoke Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}",
+                  "type": "text"
+                },
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "text",
+                  "description": "The token to revoke"
+                }
+              ]
+            },
+            "url": {
+              "raw": "https://www.linkedin.com/oauth/v2/revoke",
+              "protocol": "https",
+              "host": ["www", "linkedin", "com"],
+              "path": ["oauth", "v2", "revoke"]
+            },
+            "description": "### Revoke Token\n\nExplicitly revokes an active access token or refresh token. Once revoked, the token can no longer be used to make API calls."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Sign In with LinkedIn (User Profile)",
+      "description": "Retrieve the authenticated user's OpenID profile, email address, and unique LinkedIn Member ID (`sub`).",
+      "item": [
+        {
+          "name": "2.1 Get User Info (OpenID Connect)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.sub) {",
+                  "    pm.environment.set(\"person_id\", jsonData.sub);",
+                  "    pm.environment.set(\"person_urn\", \"urn:li:person:\" + jsonData.sub);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "description": "OAuth 2.0 Bearer Token"
+              }
+            ],
+            "url": {
+              "raw": "https://api.linkedin.com/v2/userinfo",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["v2", "userinfo"]
+            },
+            "description": "### OpenID Connect UserInfo Endpoint\n\nRetrieves standard profile claims for the authenticated user under the **Sign In with LinkedIn using OpenID Connect** product.\n\n**Required Scopes:** `openid`, `profile`, `email`\n\n**Sample Response:**\n```json\n{\n  \"sub\": \"782bbdua\",\n  \"name\": \"Jane Doe\",\n  \"given_name\": \"Jane\",\n  \"family_name\": \"Doe\",\n  \"picture\": \"https://media.licdn.com/dms/image/...\",\n  \"locale\": {\n    \"country\": \"US\",\n    \"language\": \"en\"\n  },\n  \"email\": \"jane.doe@example.com\",\n  \"email_verified\": true\n}\n```\n*Note: `sub` is the Member ID. The Postman test script sets `{{person_id}}` and `{{person_urn}}` automatically.*"
+          },
+          "response": []
+        },
+        {
+          "name": "2.2 Get User Profile (Me Endpoint - Legacy / Extended)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "https://api.linkedin.com/v2/me",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["v2", "me"]
+            },
+            "description": "### Member Profile (`/v2/me`)\n\nRetrieves localized first/last name and vanity profile details.\n*(For apps using legacy r_liteprofile or standard REST profile mapping)*."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Share on LinkedIn (Posts API)",
+      "description": "Create, retrieve, and delete posts on personal member profiles or company/organization pages using the latest LinkedIn REST Posts API (`https://api.linkedin.com/rest/posts`).",
+      "item": [
+        {
+          "name": "3.1 Create Simple Text Post (Member)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var postHeader = pm.response.headers.get(\"x-restli-id\");",
+                  "if (postHeader) {",
+                  "    pm.environment.set(\"last_post_urn\", postHeader);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}",
+                "description": "Format: YYYYMM (e.g. 202401)"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Excited to announce our new Corelink Server integration for automated scheduling and publishing! 🚀 #LinkedInAPI #Tech #FullStack\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts"]
+            },
+            "description": "### Create Text Post (Member)\n\nCreates a plain-text update published to the authenticated user's personal LinkedIn feed.\n\n**Required Scope:** `w_member_social`\n\n**Headers:**\n- `LinkedIn-Version: 202401`\n- `X-Restli-Protocol-Version: 2.0.0`\n- `Authorization: Bearer <access_token>`\n\n**Response:**\nReturns `201 Created` with the post URN in the `x-restli-id` response header."
+          },
+          "response": []
+        },
+        {
+          "name": "3.2 Create Article / Link Share Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Check out this in-depth guide on deploying serverless Node.js applications with Infisical secret management!\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"article\": {\n      \"source\": \"https://github.com/ronaldgosso/corelink_server\",\n      \"title\": \"Corelink Server - LinkedIn Automation Backend\",\n      \"description\": \"A modern Node.js Express server configured for Vercel serverless deployment and Infisical secret management.\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts"]
+            },
+            "description": "### Create Article / Link Share\n\nPublishes a post containing an external URL card with customized title and description.\n\n**Required Scope:** `w_member_social`"
+          },
+          "response": []
+        },
+        {
+          "name": "3.3 Create Organization / Company Page Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"urn:li:organization:{{organization_id}}\",\n  \"commentary\": \"Hello from our official company page! Stay tuned for upcoming product updates.\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts"]
+            },
+            "description": "### Create Post on Company Page\n\nPublishes a post on behalf of an Organization/Company LinkedIn page.\n\n**Required Scope:** `w_organization_social`\n\n*Note: Replace `{{organization_id}}` with your LinkedIn Company Page ID (numeric).* "
+          },
+          "response": []
+        },
+        {
+          "name": "3.4 Get Post by URN",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              }
+            ],
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts/{{last_post_urn}}",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts", "{{last_post_urn}}"]
+            },
+            "description": "### Retrieve Single Post\n\nFetches metadata, commentary, and media references for a specific post by URN.\n\n**URL Parameter:** `last_post_urn` (URL encoded, e.g. `urn:li:share:12345` or `urn:li:ugcPost:12345` or `urn:li:post:12345`)"
+          },
+          "response": []
+        },
+        {
+          "name": "3.5 Get Member Author Posts (Feed)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              }
+            ],
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts?author=urn:li:person:{{person_id}}&count=10&sortBy=LAST_MODIFIED",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts"],
+              "query": [
+                {
+                  "key": "author",
+                  "value": "urn:li:person:{{person_id}}",
+                  "description": "URN of the author"
+                },
+                {
+                  "key": "count",
+                  "value": "10",
+                  "description": "Number of posts to return"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "LAST_MODIFIED",
+                  "description": "Sort order: LAST_MODIFIED or CREATED"
+                }
+              ]
+            },
+            "description": "### Get Author Posts\n\nLists recently published posts created by the specified member author."
+          },
+          "response": []
+        },
+        {
+          "name": "3.6 Delete Post",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              }
+            ],
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts/{{last_post_urn}}",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts", "{{last_post_urn}}"]
+            },
+            "description": "### Delete Post\n\nPermanently deletes a previously published post.\n\n**Response:** `204 No Content`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Media Upload Flows (Images, Videos, Documents)",
+      "description": "Multi-step workflows to initialize media uploads, upload binaries to LinkedIn's CDN, and attach media assets to posts.",
+      "item": [
+        {
+          "name": "4.1 Image - Step 1: Initialize Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.value) {",
+                  "    if (jsonData.value.uploadUrl) {",
+                  "        pm.environment.set(\"image_upload_url\", jsonData.value.uploadUrl);",
+                  "    }",
+                  "    if (jsonData.value.image) {",
+                  "        pm.environment.set(\"image_asset_urn\", jsonData.value.image);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"initializeUploadRequest\": {\n    \"owner\": \"urn:li:person:{{person_id}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/images?action=initializeUpload",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "images"],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "initializeUpload"
+                }
+              ]
+            },
+            "description": "### Image Upload - Step 1\n\nInitializes an image upload request.\n\n**Response Structure:**\n```json\n{\n  \"value\": {\n    \"uploadUrl\": \"https://www.linkedin.com/dms-uploads/...\",\n    \"image\": \"urn:li:image:D5422AQFn...\",\n    \"uploadUrlExpiresAt\": 1700000000\n  }\n}\n```\n*Note: The Postman script sets `{{image_upload_url}}` and `{{image_asset_urn}}` automatically.*"
+          },
+          "response": []
+        },
+        {
+          "name": "4.2 Image - Step 2: Upload Image Binary",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/png",
+                "description": "image/png, image/jpeg, or image/gif"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
+            "url": {
+              "raw": "{{image_upload_url}}",
+              "host": ["{{image_upload_url}}"]
+            },
+            "description": "### Image Upload - Step 2\n\nUploads the raw binary image data directly to the single-use `uploadUrl` provided in Step 1.\n\n**Note:** Do NOT include the `Authorization` header in this request (the URL already has signed credentials). Select your image file in the Body tab."
+          },
+          "response": []
+        },
+        {
+          "name": "4.3 Image - Step 3: Create Post with Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Here is our visual roadmap for Corelink Server integration! 📊\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Roadmap Graphic\",\n      \"id\": \"{{image_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts"]
+            },
+            "description": "### Image Upload - Step 3\n\nPublishes the post referencing the uploaded `image_asset_urn` (`urn:li:image:...`)."
+          },
+          "response": []
+        },
+        {
+          "name": "4.4 Video - Step 1: Initialize Video Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.value) {",
+                  "    if (jsonData.value.video) {",
+                  "        pm.environment.set(\"video_asset_urn\", jsonData.value.video);",
+                  "    }",
+                  "    if (jsonData.value.uploadInstructions && jsonData.value.uploadInstructions.length > 0) {",
+                  "        pm.environment.set(\"video_upload_url\", jsonData.value.uploadInstructions[0].uploadUrl);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"initializeUploadRequest\": {\n    \"owner\": \"urn:li:person:{{person_id}}\",\n    \"fileSizeBytes\": 5242880,\n    \"uploadCaptions\": false,\n    \"uploadThumbnail\": false\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/videos?action=initializeUpload",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "videos"],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "initializeUpload"
+                }
+              ]
+            },
+            "description": "### Video Upload - Step 1\n\nInitializes a video upload session by specifying `fileSizeBytes` (exact file size in bytes)."
+          },
+          "response": []
+        },
+        {
+          "name": "4.5 Video - Step 2: Upload Video Part Binary",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
+            "url": {
+              "raw": "{{video_upload_url}}",
+              "host": ["{{video_upload_url}}"]
+            },
+            "description": "### Video Upload - Step 2\n\nUploads video binary data to `video_upload_url`."
+          },
+          "response": []
+        },
+        {
+          "name": "4.6 Video - Step 3: Finalize Video Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finalizeUploadRequest\": {\n    \"video\": \"{{video_asset_urn}}\",\n    \"uploadToken\": \"\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/videos?action=finalizeUpload",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "videos"],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "finalizeUpload"
+                }
+              ]
+            },
+            "description": "### Video Upload - Step 3\n\nFinalizes the video upload after all parts are sent."
+          },
+          "response": []
+        },
+        {
+          "name": "4.7 Video - Step 4: Create Post with Video",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Watch our quick 1-minute demo video of Corelink in action! 🎥\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Corelink Demo Video\",\n      \"id\": \"{{video_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts"]
+            },
+            "description": "### Video Upload - Step 4\n\nPublishes the video post referencing `video_asset_urn`."
+          },
+          "response": []
+        },
+        {
+          "name": "4.8 Document / PDF - Step 1: Initialize Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.value) {",
+                  "    if (jsonData.value.document) {",
+                  "        pm.environment.set(\"document_asset_urn\", jsonData.value.document);",
+                  "    }",
+                  "    if (jsonData.value.uploadUrl) {",
+                  "        pm.environment.set(\"document_upload_url\", jsonData.value.uploadUrl);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"initializeUploadRequest\": {\n    \"owner\": \"urn:li:person:{{person_id}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/documents?action=initializeUpload",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "documents"],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "initializeUpload"
+                }
+              ]
+            },
+            "description": "### Document Upload - Step 1\n\nInitializes a document (PDF / Slide Carousel) upload."
+          },
+          "response": []
+        },
+        {
+          "name": "4.9 Document / PDF - Step 2: Upload Document Binary",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/pdf"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
+            "url": {
+              "raw": "{{document_upload_url}}",
+              "host": ["{{document_upload_url}}"]
+            },
+            "description": "### Document Upload - Step 2\n\nUploads PDF file binary to `document_upload_url`."
+          },
+          "response": []
+        },
+        {
+          "name": "4.10 Document / PDF - Step 3: Create Carousel Post",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "LinkedIn-Version",
+                "value": "{{linkedin_version}}"
+              },
+              {
+                "key": "X-Restli-Protocol-Version",
+                "value": "2.0.0"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Swipe through this PDF slide deck on architecture best practices! 📑\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Architecture Best Practices Deck\",\n      \"id\": \"{{document_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "https://api.linkedin.com/rest/posts",
+              "protocol": "https",
+              "host": ["api", "linkedin", "com"],
+              "path": ["rest", "posts"]
+            },
+            "description": "### Document Upload - Step 3\n\nPublishes a carousel slide deck post referencing `document_asset_urn`."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Set default linkedin_version if not present",
+          "if (!pm.environment.get(\"linkedin_version\")) {",
+          "    pm.environment.set(\"linkedin_version\", \"202401\");",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

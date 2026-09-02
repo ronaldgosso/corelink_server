@@ -1,0 +1,40 @@
+{
+  "name": "corelink_server",
+  "version": "1.0.0",
+  "description": "A backend for linkedin posting and scheduling",
+  "keywords": [
+    "node",
+    "linkedin",
+    "fullstack",
+    "tanzania",
+    "fintech"
+  ],
+  "homepage": "https://github.com/ronaldgosso/corelink_server#readme",
+  "bugs": {
+    "url": "https://github.com/ronaldgosso/corelink_server/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ronaldgosso/corelink_server.git"
+  },
+  "license": "ISC",
+  "author": "Ronald Gosso, Bakari Ally Rajabu, Manase Mwaipopo",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "infisical:dev": "infisical run --env=dev -- npm run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "morgan": "^1.12.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

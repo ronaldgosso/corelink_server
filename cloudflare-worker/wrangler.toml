@@ -1,0 +1,26 @@
+name = "corelink-cron-worker"
+main = "src/index.js"
+compatibility_date = "2024-09-01"
+
+# -----------------------------------------------------------------------------
+# Cron Triggers Configuration
+# -----------------------------------------------------------------------------
+# Triggers every 10 minutes (*/10 * * * *)
+# You can customize this (e.g., "*/5 * * * *" for every 5 minutes)
+[triggers]
+crons = ["*/10 * * * *"]
+
+# -----------------------------------------------------------------------------
+# Environment Variables (Public/Non-Secret)
+# -----------------------------------------------------------------------------
+[vars]
+BACKEND_API_URL = "https://corelink-server.vercel.app"
+BATCH_SIZE = "10"
+MAX_RETRIES = "2"
+TIMEOUT_MS = "15000"
+ENVIRONMENT = "production"
+
+# -----------------------------------------------------------------------------
+# Secrets (DO NOT commit plaintext secrets here)
+# Set via terminal: npx wrangler secret put CRON_SECRET
+# -----------------------------------------------------------------------------

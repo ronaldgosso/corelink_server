@@ -202,11 +202,11 @@ Allows instant publication of an existing draft/scheduled post.
 
 ## 5. Cloudflare Worker Cron Trigger Configuration
 
-Your Cloudflare Worker script (`index.ts`) runs on `*/10 * * * *` and dispatches to `corelink_server`:
+Your Cloudflare Worker script (`cloudflare-worker/src/index.js`) runs on `*/10 * * * *` and dispatches to `corelink_server`:
 
-```typescript
+```javascript
 export default {
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  async scheduled(event, env, ctx) {
     const response = await fetch(`${env.BACKEND_API_URL}/api/publish`, {
       method: 'POST',
       headers: {

@@ -65,7 +65,13 @@ export const handleLinkedInCallback = async (req, res) => {
       return res.status(400).send('Authorization code missing in query parameters.');
     }
 
-    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/linkedin/callback`;
+    // Determine canonical redirect URI matching what was sent in the auth URL
+    const host = req.get('host') || 'corelink-server.vercel.app';
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const redirectUri = isLocal
+      ? `http://${host}/api/auth/linkedin/callback`
+      : `https://${host}/api/auth/linkedin/callback`;
+
     const result = await AuthService.exchangeLinkedInCode({
       code,
       redirectUri,
@@ -113,8 +119,8 @@ export const handleLinkedInCallback = async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>CoreLink - Error</title>
         <style>
-          body { background: #0B0F1A; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; }
-          .card { background: #131B2E; padding: 30px; border-radius: 16px; text-align: center; max-width: 400px; }
+          body { background: #0B0F1A; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+          .card { background: #131B2E; padding: 30px; border-radius: 16px; text-align: center; max-width: 400px; border: 1px solid rgba(255,77,77,0.3); }
         </style>
       </head>
       <body>

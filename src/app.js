@@ -8,6 +8,9 @@ import { notFoundHandler, errorHandler } from './middlewares/errorHandler.js';
 
 const app = express();
 
+// Trust reverse proxies (Vercel / Cloudflare) to ensure req.protocol is https
+app.set('trust proxy', 1);
+
 // Security HTTP headers
 app.use(helmet());
 

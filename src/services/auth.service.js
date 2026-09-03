@@ -118,14 +118,39 @@ export class AuthService {
         throw new Error(`Failed to update profile: ${updateError.message}`);
       }
     } else {
-      // For new profile, generate UUID or insert
-      const newId = crypto.randomUUID();
-      profileId = newId;
+      // 4b. Ensure user exists in Supabase auth.users to satisfy foreign key constraint
+      const authEmail = email || `user_${linkedinMemberId}@corelink.app`;
+      let authUserId;
+
+      const { data: newAuthUser, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
+        email: authEmail,
+        email_confirm: true,
+        user_metadata: {
+          name,
+          picture_url: pictureUrl,
+          linkedin_member_id: linkedinMemberId,
+        },
+      });
+
+      if (!authCreateError && newAuthUser?.user?.id) {
+        authUserId = newAuthUser.user.id;
+      } else {
+        // If auth user already existed with this email, fetch the ID
+        const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
+        const existing = userList?.users?.find((u) => u.email === authEmail);
+        if (existing?.id) {
+          authUserId = existing.id;
+        } else {
+          authUserId = crypto.randomUUID();
+        }
+      }
+
+      profileId = authUserId;
 
       const { error: insertError } = await supabaseAdmin
         .from('profiles')
         .insert({
-          id: newId,
+          id: authUserId,
           linkedin_member_id: linkedinMemberId,
           name,
           email,

@@ -1,47 +1,119 @@
 # Corelink Server
 
-Corelink Server repository.
+> **Production-grade centralized backend gateway for the LinkedIn AI Post Scheduler MVP.**  
+> Powers automated AI post creation, scheduled publishing, OAuth token encryption, and Supabase integration.
 
-## Environment Variables & Secret Management
+---
 
-We use [Infisical](https://infisical.com/) to securely manage and sync environment variables across the team.
+## 🏛️ System Architecture
 
-### Quick Start with Infisical
+```text
+┌─────────────────────────────────────────────────────────┐
+│                    Mobile Client App                    │
+│             (Flutter / React Native Client)             │
+└────────────────────────────┬────────────────────────────┘
+                             │ (Single Unified API /api/*)
+                             ▼
+┌─────────────────────────────────────────────────────────┐
+│              corelink_server (Vercel Node.js)           │
+│                                                         │
+│  • /api/auth/linkedin    ➔ OAuth code exchange & AES-256│
+│  • /api/generate         ➔ Mistral AI (mistral-small)   │
+│  • /api/posts            ➔ Supabase CRUD & schedule     │
+│  • /api/publish          ➔ Atomic claim, decrypt, post  │
+└───┬────────────────────────┬────────────────────────┬───┘
+    │                        │                        │
+    ▼                        ▼                        ▼
+┌─────────────────┐  ┌───────────────┐  ┌──────────────────┐
+│    Supabase     │  │  Mistral AI   │  │   LinkedIn REST  │
+│ (PostgreSQL/RLS)│  │ (mistral-small│  │    (Posts API)   │
+└────────▲────────┘  └───────────────┘  └──────────────────┘
+         │ (Polls every 10 min)
+┌────────┴───────────────────────────┐
+│      Cloudflare Worker Cron        │
+│        Trigger: */10 * * * *       │
+└────────────────────────────────────┘
+```
 
-1. **Install Infisical CLI**:
-   - **Windows (Winget):** `winget install infisical`
-   - **macOS (Homebrew):** `brew install infisical/get-cli/infisical`
-   - **Linux:** See [INFISICAL.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/INFISICAL.md)
-2. **Authenticate**:
-   ```bash
-   infisical login
-   ```
-3. **Link repository**:
-   ```bash
-   infisical init
-   ```
-4. **Run with injected secrets**:
-   ```bash
-   infisical run --env=dev -- npm run dev
-   ```
+---
 
-For the complete guide on sharing secrets, personal overrides, exporting `.env` files, Docker, and CI/CD setups, see [INFISICAL.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/INFISICAL.md).
+## 🚀 Tech Stack Matrix
 
-## Deployment (Vercel)
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Backend Gateway** | Node.js (ES Modules), Express 5 | Centralized API, validation, security, and orchestrator |
+| **Hosting & Compute** | Vercel Serverless Functions | Zero-idle cost, auto-scaling execution |
+| **Database & Auth** | Supabase (PostgreSQL + RLS) | Relational storage for users, encrypted tokens, and posts |
+| **AI Engine** | Mistral AI SDK (`mistral-small`) | High-converting LinkedIn post generation & hook optimization |
+| **Background Cron** | Cloudflare Workers (`*/10 * * * *`) | Serverless scheduled trigger querying due posts (<10ms CPU) |
+| **Social API** | LinkedIn REST API (`/rest/posts`) | OAuth 2.0 OpenID Connect & post publishing |
+| **Secret Management**| Infisical CLI | Team secret synchronization and zero-plaintext runtime injection |
 
-The server is configured for serverless deployment on Vercel.
+---
 
-- **Live URL:** [https://corelink-server.vercel.app](https://corelink-server.vercel.app)
-- **Health Check:** [https://corelink-server.vercel.app/api/health](https://corelink-server.vercel.app/api/health)
+## 📚 Documentation Directory
 
-For full deployment instructions, environment variable setups, and CLI workflows, see [VERCEL.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/VERCEL.md).
-
-## LinkedIn API Collection (Postman & Hoppscotch)
-
-Ready-to-use API collection for **Sign In with LinkedIn (OpenID Connect)** and **Share on LinkedIn (REST Posts & Media API)**:
-
-- **Collection:** [`postman/LinkedIn_API_Collection.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_API_Collection.json)
-- **Environment:** [`postman/LinkedIn_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_Environment.json)
-- **Comprehensive API Guide:** [LINKEDIN_API_GUIDE.md](file:///c:/Users/Neptune/Documents/Projects/corelink_server/LINKEDIN_API_GUIDE.md)
+| Document | Purpose |
+| :--- | :--- |
+| 🌟 [**PROJECT_DOCUMENTATION.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/PROJECT_DOCUMENTATION.md) | **Master Project Specification**: Full mobile app, backend, web dashboard, architecture, UI/UX design tokens & layman guide. |
+| 📖 [**BACKEND_API_GUIDE.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/BACKEND_API_GUIDE.md) | Full Backend API guide, **Supabase SQL DDL, RLS policies, indexes**, and Cloudflare Worker script. |
+| 🗄️ [**supabase/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/supabase/README.md) | Supabase PostgreSQL schema, RLS policies, atomic claim function, and performance indexes. |
+| ⚡ [**cloudflare-worker/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/cloudflare-worker/README.md) | Cloudflare Worker Cron Trigger engine setup, Wrangler CLI configuration, and edge deployment. |
+| 🔑 [**INFISICAL.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/INFISICAL.md) | Guide to syncing & sharing `.env` variables across the team with Infisical CLI. |
+| ☁️ [**VERCEL.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/VERCEL.md) | Serverless Express deployment on Vercel, live URLs, logs, and cron configurations. |
+| 🔗 [**LINKEDIN_API_GUIDE.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/LINKEDIN_API_GUIDE.md) | Official LinkedIn REST & OAuth 2.0 endpoints, scopes, media upload flows (images, videos, PDFs). |
 
 
+---
+
+## 🛠️ Getting Started (Local Development)
+
+### 1. Prerequisites
+- **Node.js:** `v20+`
+- **Infisical CLI:** (Recommended for secret management)
+
+### 2. Quick Setup with Infisical
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Authenticate Infisical
+infisical login
+
+# 3. Link the repository
+infisical init
+
+# 4. Run the development server with injected secrets
+npm run infisical:dev
+```
+
+### 3. Alternative: Standard Setup with `.env`
+```bash
+cp .env.example .env
+# Fill in your variables in .env
+npm run dev
+```
+
+---
+
+## 📦 API Collections (Postman & Hoppscotch)
+
+Two pre-built, production-ready collections formatted in **Postman v2.1.0 Schema** (compatible with Postman and Hoppscotch):
+
+### 1. Centralized Backend API (Corelink Gateway)
+* **Collection:** [`postman/Corelink_Backend_API_Collection.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/Corelink_Backend_API_Collection.json)
+* **Environment:** [`postman/Corelink_Backend_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/Corelink_Backend_Environment.json)
+* **Endpoints:** `/api/auth/linkedin`, `/api/auth/me`, `/api/generate`, `/api/posts` (CRUD), `/api/publish` (Cron dispatcher).
+
+### 2. Direct LinkedIn REST & OAuth Collection
+* **Collection:** [`postman/LinkedIn_API_Collection.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_API_Collection.json)
+* **Environment:** [`postman/LinkedIn_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_Environment.json)
+* **Endpoints:** Direct calls to `https://www.linkedin.com/oauth/v2` and `https://api.linkedin.com/rest/posts`.
+
+---
+
+## 🌐 Live Deployments
+
+* **Production URL:** [https://corelink-server.vercel.app](https://corelink-server.vercel.app)
+* **Health Endpoint:** [https://corelink-server.vercel.app/api/health](https://corelink-server.vercel.app/api/health)
+* **Vercel Dashboard:** [Project Overview](https://vercel.com/dashboard)

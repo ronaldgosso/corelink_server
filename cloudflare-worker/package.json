@@ -1,0 +1,26 @@
+{
+  "name": "corelink-cron-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker Cron Trigger engine for Corelink Server LinkedIn post publishing",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "keywords": [
+    "cloudflare",
+    "worker",
+    "cron",
+    "scheduler",
+    "linkedin",
+    "serverless",
+    "javascript"
+  ],
+  "author": "Ronald Gosso",
+  "license": "ISC",
+  "devDependencies": {
+    "wrangler": "^3.75.0"
+  }
+}

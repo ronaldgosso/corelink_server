@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from './env.js';
 
-const supabaseUrl = config.supabase.url;
+let rawUrl = config.supabase.url || '';
+
+// Sanitize URL by removing /rest/v1 or trailing slashes if present
+const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+
 // Prefer service role key for backend operations to bypass RLS securely; fallback to anonKey
 const supabaseKey = config.supabase.serviceRoleKey || config.supabase.anonKey;
 

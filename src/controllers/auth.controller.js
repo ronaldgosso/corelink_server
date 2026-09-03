@@ -1,4 +1,5 @@
 import { AuthService } from '../services/auth.service.js';
+import { config } from '../config/env.js';
 
 export const handleLinkedInExchange = async (req, res) => {
   try {
@@ -34,6 +35,9 @@ export const handleLinkedInExchange = async (req, res) => {
 };
 
 export const handleLinkedInCallback = async (req, res) => {
+  const clientId = config.linkedin.clientId || '77wtiyb9nrkwzr';
+  const retryAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=https%3A%2F%2Fcorelink-server.vercel.app%2Fapi%2Fauth%2Flinkedin%2Fcallback&scope=openid%20profile%20email%20w_member_social`;
+
   try {
     const { code, error, error_description } = req.query;
 
@@ -48,13 +52,15 @@ export const handleLinkedInCallback = async (req, res) => {
             body { background: #0B0F1A; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
             .card { background: #131B2E; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; text-align: center; max-width: 400px; }
             h2 { color: #FF4D4D; margin-top: 0; }
-            p { color: #8C9BAE; font-size: 14px; line-height: 1.5; }
+            p { color: #8C9BAE; font-size: 14px; line-height: 1.5; margin-bottom: 24px; }
+            .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #00C4FF; color: #0B0F1A; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 20px; border-radius: 12px; }
           </style>
         </head>
         <body>
           <div class="card">
-            <h2>Authentication Failed</h2>
+            <h2>Authentication Cancelled</h2>
             <p>${error_description || error || 'You cancelled the LinkedIn authorization request.'}</p>
+            <a href="${retryAuthUrl}" class="btn">Try Signing In Again</a>
           </div>
         </body>
         </html>
@@ -62,7 +68,27 @@ export const handleLinkedInCallback = async (req, res) => {
     }
 
     if (!code) {
-      return res.status(400).send('Authorization code missing in query parameters.');
+      return res.status(400).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>CoreLink - Missing Code</title>
+          <style>
+            body { background: #0B0F1A; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; }
+            .card { background: #131B2E; padding: 32px; border-radius: 16px; text-align: center; max-width: 400px; }
+            .btn { display: inline-block; background: #00C4FF; color: #0B0F1A; font-weight: 700; text-decoration: none; padding: 12px 20px; border-radius: 10px; margin-top: 16px; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h2>No Authorization Code</h2>
+            <p style="color: #8C9BAE;">Authorization code was not received.</p>
+            <a href="${retryAuthUrl}" class="btn">Start Fresh Login</a>
+          </div>
+        </body>
+        </html>
+      `);
     }
 
     // Determine canonical redirect URI matching what was sent in the auth URL
@@ -92,7 +118,6 @@ export const handleLinkedInCallback = async (req, res) => {
           h2 { color: #FFFFFF; font-size: 22px; margin: 0 0 8px 0; }
           p { color: #8C9BAE; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0; }
           .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #00C4FF; color: #0B0F1A; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 20px; border-radius: 12px; margin-bottom: 12px; }
-          .token-box { background: #0B0F1A; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; font-size: 11px; word-break: break-all; color: #8C9BAE; margin-top: 16px; user-select: all; }
         </style>
         <script>
           window.onload = function() {
@@ -119,14 +144,18 @@ export const handleLinkedInCallback = async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>CoreLink - Error</title>
         <style>
-          body { background: #0B0F1A; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-          .card { background: #131B2E; padding: 30px; border-radius: 16px; text-align: center; max-width: 400px; border: 1px solid rgba(255,77,77,0.3); }
+          body { background: #0B0F1A; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+          .card { background: #131B2E; padding: 32px; border-radius: 18px; text-align: center; max-width: 420px; border: 1px solid rgba(255,77,77,0.3); }
+          h2 { color: #FF4D4D; margin-top: 0; }
+          p { color: #8C9BAE; font-size: 14px; line-height: 1.5; margin-bottom: 24px; }
+          .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #00C4FF; color: #0B0F1A; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 20px; border-radius: 12px; }
         </style>
       </head>
       <body>
         <div class="card">
-          <h2 style="color: #FF4D4D;">Connection Failed</h2>
-          <p style="color: #8C9BAE;">${error.message}</p>
+          <h2>Connection Expired</h2>
+          <p>${error.message.includes('expired') || error.message.includes('code') ? 'The authorization code has expired or was already used. Please start a fresh login session.' : error.message}</p>
+          <a href="${retryAuthUrl}" class="btn">Start Fresh LinkedIn Login</a>
         </div>
       </body>
       </html>

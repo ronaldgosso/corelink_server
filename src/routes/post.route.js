@@ -7,6 +7,7 @@ import {
   handleDeletePost,
   handleGetPostStats,
 } from '../controllers/post.controller.js';
+import { handlePublishPostNow } from '../controllers/publish.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -20,6 +21,9 @@ router.get('/stats', handleGetPostStats);
 // List posts & Create post
 router.get('/', handleGetPosts);
 router.post('/', handleCreatePost);
+
+// Immediate publish to LinkedIn
+router.post('/:id/publish-now', handlePublishPostNow);
 
 // Single post operations
 router.get('/:id', handleGetPostById);

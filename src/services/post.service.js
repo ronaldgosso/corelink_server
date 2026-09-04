@@ -4,7 +4,15 @@ export class PostService {
   /**
    * Creates a new scheduled post in Supabase
    */
-  static async createPost({ userId, content, scheduledAt, mediaUrl = null, mediaType = 'none', status = 'pending' }) {
+  static async createPost({
+    userId,
+    content,
+    scheduledAt,
+    mediaUrl = null,
+    mediaType = 'none',
+    mediaAssetUrn = null,
+    status = 'pending',
+  }) {
     if (!content || content.trim().length === 0) {
       throw new Error('Post content is required.');
     }
@@ -18,18 +26,24 @@ export class PostService {
       throw new Error('Invalid scheduled_at date format. Must be a valid ISO-8601 string.');
     }
 
+    const insertPayload = {
+      user_id: userId,
+      content: content.trim(),
+      scheduled_at: scheduledDate.toISOString(),
+      media_url: mediaUrl,
+      media_type: mediaType || 'none',
+      status: status || 'pending',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    if (mediaAssetUrn) {
+      insertPayload.media_asset_urn = mediaAssetUrn;
+    }
+
     const { data: post, error } = await supabaseAdmin
       .from('posts')
-      .insert({
-        user_id: userId,
-        content: content.trim(),
-        scheduled_at: scheduledDate.toISOString(),
-        media_url: mediaUrl,
-        media_type: mediaType || 'none',
-        status: status || 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select('*')
       .single();
 
@@ -86,7 +100,7 @@ export class PostService {
   /**
    * Updates an existing post
    */
-  static async updatePost({ userId, postId, content, scheduledAt, status, mediaUrl, mediaType }) {
+  static async updatePost({ userId, postId, content, scheduledAt, status, mediaUrl, mediaType, mediaAssetUrn }) {
     const updatePayload = {
       updated_at: new Date().toISOString(),
     };
@@ -102,6 +116,7 @@ export class PostService {
     if (status !== undefined) updatePayload.status = status;
     if (mediaUrl !== undefined) updatePayload.media_url = mediaUrl;
     if (mediaType !== undefined) updatePayload.media_type = mediaType;
+    if (mediaAssetUrn !== undefined) updatePayload.media_asset_urn = mediaAssetUrn;
 
     const { data: updatedPost, error } = await supabaseAdmin
       .from('posts')

@@ -5,6 +5,173 @@ import { PostService } from './post.service.js';
 
 export class LinkedInService {
   /**
+   * Initializes and uploads an image to LinkedIn REST API
+   */
+  static async uploadImageToLinkedIn({ accessToken, personId, buffer, mimeType = 'image/jpeg' }) {
+    if (!accessToken) {
+      throw new Error('LinkedIn access token is required for image upload.');
+    }
+    if (!personId) {
+      throw new Error('LinkedIn person ID is required.');
+    }
+
+    const author = personId.startsWith('urn:li:') ? personId : `urn:li:person:${personId}`;
+    const apiVersion = config.linkedin.apiVersion || '202401';
+
+    // Step 1: Initialize Image Upload
+    const initResponse = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'LinkedIn-Version': apiVersion,
+        'X-Restli-Protocol-Version': '2.0.0',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        initializeUploadRequest: {
+          owner: author,
+        },
+      }),
+    });
+
+    if (!initResponse.ok) {
+      const errText = await initResponse.text();
+      throw new Error(`LinkedIn Image Init Failed (${initResponse.status}): ${errText}`);
+    }
+
+    const initData = await initResponse.json();
+    const uploadUrl = initData.value?.uploadUrl;
+    const imageUrn = initData.value?.image;
+
+    if (!uploadUrl || !imageUrn) {
+      throw new Error('LinkedIn image initialization did not return uploadUrl or image URN.');
+    }
+
+    // Step 2: Upload Binary Payload to signed CDN URL
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': mimeType || 'image/jpeg',
+      },
+      body: buffer,
+    });
+
+    if (!uploadResponse.ok) {
+      const errText = await uploadResponse.text();
+      throw new Error(`LinkedIn Image CDN Upload Failed (${uploadResponse.status}): ${errText}`);
+    }
+
+    return {
+      mediaAssetUrn: imageUrn,
+      mediaType: 'image',
+    };
+  }
+
+  /**
+   * Initializes, uploads, and finalizes a video to LinkedIn REST API
+   */
+  static async uploadVideoToLinkedIn({ accessToken, personId, buffer, mimeType = 'video/mp4', fileSizeBytes = null }) {
+    if (!accessToken) {
+      throw new Error('LinkedIn access token is required for video upload.');
+    }
+    if (!personId) {
+      throw new Error('LinkedIn person ID is required.');
+    }
+
+    const author = personId.startsWith('urn:li:') ? personId : `urn:li:person:${personId}`;
+    const apiVersion = config.linkedin.apiVersion || '202401';
+    const totalBytes = fileSizeBytes || (buffer ? buffer.length : 0);
+
+    if (totalBytes < 75 * 1024) {
+      throw new Error('LinkedIn video size must be at least 75 KB.');
+    }
+    if (totalBytes > 200 * 1024 * 1024) {
+      throw new Error('LinkedIn video size exceeds the 200 MB maximum limit.');
+    }
+
+    // Step 1: Initialize Video Upload
+    const initResponse = await fetch('https://api.linkedin.com/rest/videos?action=initializeUpload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'LinkedIn-Version': apiVersion,
+        'X-Restli-Protocol-Version': '2.0.0',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        initializeUploadRequest: {
+          owner: author,
+          fileSizeBytes: totalBytes,
+          uploadCaptions: false,
+          uploadThumbnail: false,
+        },
+      }),
+    });
+
+    if (!initResponse.ok) {
+      const errText = await initResponse.text();
+      throw new Error(`LinkedIn Video Init Failed (${initResponse.status}): ${errText}`);
+    }
+
+    const initData = await initResponse.json();
+    const uploadInstructions = initData.value?.uploadInstructions;
+    const videoUrn = initData.value?.video;
+    const uploadToken = initData.value?.uploadToken || '';
+
+    if (!uploadInstructions || !uploadInstructions.length || !videoUrn) {
+      throw new Error('LinkedIn video initialization did not return uploadInstructions or video URN.');
+    }
+
+    const uploadUrl = uploadInstructions[0].uploadUrl;
+
+    // Step 2: Upload Binary Payload to signed CDN URL
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+      },
+      body: buffer,
+    });
+
+    if (!uploadResponse.ok) {
+      const errText = await uploadResponse.text();
+      throw new Error(`LinkedIn Video CDN Upload Failed (${uploadResponse.status}): ${errText}`);
+    }
+
+    const etag = uploadResponse.headers.get('etag') || uploadResponse.headers.get('ETag') || null;
+
+    // Step 3: Finalize Video Upload
+    const finalizePayload = {
+      finalizeUploadRequest: {
+        video: videoUrn,
+        uploadToken: uploadToken,
+        uploadedPartIds: etag ? [etag] : [],
+      },
+    };
+
+    const finalizeResponse = await fetch('https://api.linkedin.com/rest/videos?action=finalizeUpload', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'LinkedIn-Version': apiVersion,
+        'X-Restli-Protocol-Version': '2.0.0',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(finalizePayload),
+    });
+
+    if (!finalizeResponse.ok) {
+      const errText = await finalizeResponse.text();
+      throw new Error(`LinkedIn Video Finalize Failed (${finalizeResponse.status}): ${errText}`);
+    }
+
+    return {
+      mediaAssetUrn: videoUrn,
+      mediaType: 'video',
+    };
+  }
+
+  /**
    * Publishes post content to LinkedIn REST API v202401
    */
   static async publishPostToLinkedIn({ accessToken, personId, commentary, mediaAssetUrn = null, mediaType = 'none' }) {

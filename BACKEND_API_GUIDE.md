@@ -174,16 +174,49 @@ All endpoints require `Authorization: Bearer <auth_token>`.
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/posts` | Create scheduled post or draft (`scheduledAt`, `content`, `mediaUrl`) |
+| `POST` | `/api/posts` | Create scheduled post or draft (`scheduledAt`, `content`, `mediaUrl`, `mediaType`, `mediaAssetUrn`) |
 | `GET` | `/api/posts` | List posts (`?status=pending&page=1&limit=20&sortBy=scheduled_at`) |
 | `GET` | `/api/posts/:id` | Get post details by UUID |
-| `PUT` | `/api/posts/:id` | Update post content or reschedule time |
+| `PUT` | `/api/posts/:id` | Update post content, reschedule time, or media attachments |
 | `DELETE`| `/api/posts/:id` | Delete post / cancel schedule |
 | `GET` | `/api/posts/stats`| Get post counts (pending, published, failed) |
 
 ---
 
-### 4. Publishing Pipeline & Cron (`/api/publish`)
+### 4. Media Upload API (`/api/media`)
+
+All endpoints require `Authorization: Bearer <auth_token>`.
+
+#### `POST /api/media/upload`
+Uploads and registers an image or video directly with LinkedIn's 3-step REST upload protocol (`/rest/images` or `/rest/videos`).
+
+* **Request Body (JSON):**
+  ```json
+  {
+    "fileBase64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
+    "mediaType": "image",
+    "mimeType": "image/png",
+    "fileName": "diagram.png"
+  }
+  ```
+* **Validation & Constraints:**
+  - **Images (`image`)**: Max 10 MB. Supported: `PNG`, `JPEG`, `GIF`, `WebP`.
+  - **Videos (`video`)**: 75 KB to 200 MB. Duration: 3s to 10 mins. Supported: `MP4`, `MOV`, `WebM`.
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Image uploaded and registered with LinkedIn successfully",
+    "mediaAssetUrn": "urn:li:image:D4E10AQF3J5k7...",
+    "mediaType": "image",
+    "fileSizeBytes": 154200,
+    "fileName": "diagram.png"
+  }
+  ```
+
+---
+
+### 5. Publishing Pipeline & Cron (`/api/publish`)
 
 #### `POST /api/publish` (Cron Worker Dispatcher)
 Triggered by Cloudflare Worker every 10 minutes.

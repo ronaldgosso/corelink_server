@@ -4,6 +4,7 @@ import authRoutes from './auth.route.js';
 import aiRoutes from './ai.route.js';
 import postRoutes from './post.route.js';
 import publishRoutes from './publish.route.js';
+import mediaRoutes from './media.route.js';
 
 const router = Router();
 
@@ -13,5 +14,6 @@ router.use('/auth', authRoutes);
 router.use('/generate', aiRoutes);
 router.use('/posts', postRoutes);
 router.use('/publish', publishRoutes);
+router.use('/media', mediaRoutes);
 
 export default router;

@@ -2,10 +2,22 @@ import { PostService } from '../services/post.service.js';
 
 export const handleCreatePost = async (req, res) => {
   try {
-    const { content, scheduled_at, scheduledAt, media_url, mediaUrl, media_type, mediaType, status } = req.body;
+    const {
+      content,
+      scheduled_at,
+      scheduledAt,
+      media_url,
+      mediaUrl,
+      media_type,
+      mediaType,
+      media_asset_urn,
+      mediaAssetUrn,
+      status,
+    } = req.body;
     const finalScheduledAt = scheduled_at || scheduledAt;
     const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
     const finalMediaType = media_type || mediaType || 'none';
+    const finalMediaAssetUrn = media_asset_urn || mediaAssetUrn || null;
 
     if (!content) {
       return res.status(400).json({
@@ -27,6 +39,7 @@ export const handleCreatePost = async (req, res) => {
       scheduledAt: finalScheduledAt,
       mediaUrl: finalMediaUrl,
       mediaType: finalMediaType,
+      mediaAssetUrn: finalMediaAssetUrn,
       status: status || 'pending',
     });
 
@@ -93,10 +106,22 @@ export const handleGetPostById = async (req, res) => {
 export const handleUpdatePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { content, scheduled_at, scheduledAt, status, media_url, mediaUrl, media_type, mediaType } = req.body;
+    const {
+      content,
+      scheduled_at,
+      scheduledAt,
+      status,
+      media_url,
+      mediaUrl,
+      media_type,
+      mediaType,
+      media_asset_urn,
+      mediaAssetUrn,
+    } = req.body;
     const finalScheduledAt = scheduled_at || scheduledAt;
     const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
     const finalMediaType = media_type || mediaType;
+    const finalMediaAssetUrn = media_asset_urn !== undefined ? media_asset_urn : mediaAssetUrn;
 
     const updatedPost = await PostService.updatePost({
       userId: req.user.id,
@@ -106,6 +131,7 @@ export const handleUpdatePost = async (req, res) => {
       status,
       mediaUrl: finalMediaUrl,
       mediaType: finalMediaType,
+      mediaAssetUrn: finalMediaAssetUrn,
     });
 
     return res.status(200).json({

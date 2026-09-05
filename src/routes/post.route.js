@@ -8,7 +8,7 @@ import {
   handleSyncLinkedInPosts,
   handleGetPostStats,
 } from '../controllers/post.controller.js';
-import { handlePublishPostNow } from '../controllers/publish.controller.js';
+import { handlePublishPostNow, getScheduleWindow } from '../controllers/publish.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -16,8 +16,10 @@ const router = Router();
 // All posts endpoints require user authentication
 router.use(requireAuth);
 
-// Summary statistics (must be before /:id route)
+// Summary statistics & Schedule window (must be before /:id route)
 router.get('/stats', handleGetPostStats);
+router.get('/schedule-window', getScheduleWindow);
+
 
 // List posts & Create post
 router.get('/', handleGetPosts);

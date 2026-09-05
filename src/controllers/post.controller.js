@@ -33,10 +33,12 @@ export const handleCreatePost = async (req, res) => {
       });
     }
 
+    const tzOffset = req.headers['x-timezone-offset'] || req.body.timezone_offset;
     const post = await PostService.createPost({
       userId: req.user.id,
       content,
       scheduledAt: finalScheduledAt,
+      timezoneOffset: tzOffset,
       mediaUrl: finalMediaUrl,
       mediaType: finalMediaType,
       mediaAssetUrn: finalMediaAssetUrn,

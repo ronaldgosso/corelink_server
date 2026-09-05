@@ -28,6 +28,17 @@ export const getScheduleWindow = (req, res) => {
     suggestedScheduledAt = new Date(suggestedScheduledAt.getTime() + cadenceMinutes * 60 * 1000);
   }
 
+  const tzOffset = req.headers['x-timezone-offset'] ? parseInt(req.headers['x-timezone-offset'], 10) : null;
+  let localNextFormatted = null;
+  let localSuggestedFormatted = null;
+
+  if (tzOffset !== null && !isNaN(tzOffset)) {
+    const localNext = new Date(nextDispatchWindow.getTime() + tzOffset * 60 * 1000);
+    const localSugg = new Date(suggestedScheduledAt.getTime() + tzOffset * 60 * 1000);
+    localNextFormatted = `${String(localNext.getUTCHours()).padStart(2, '0')}:${String(localNext.getUTCMinutes()).padStart(2, '0')}`;
+    localSuggestedFormatted = `${String(localSugg.getUTCHours()).padStart(2, '0')}:${String(localSugg.getUTCMinutes()).padStart(2, '0')}`;
+  }
+
   return res.status(200).json({
     success: true,
     server_time: now.toISOString(),
@@ -35,6 +46,8 @@ export const getScheduleWindow = (req, res) => {
     cadence_minutes: cadenceMinutes,
     next_dispatch_window: nextDispatchWindow.toISOString(),
     suggested_scheduled_at: suggestedScheduledAt.toISOString(),
+    local_next_window: localNextFormatted,
+    local_suggested_window: localSuggestedFormatted,
   });
 };
 

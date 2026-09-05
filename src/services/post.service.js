@@ -6,10 +6,36 @@ export class PostService {
   /**
    * Creates a new scheduled post in Supabase
    */
+    /**
+   * Safely converts any scheduled date input to UTC ISO string using client timezone offset if needed
+   */
+  static parseScheduledDate(scheduledAt, timezoneOffsetMinutes = null) {
+    if (!scheduledAt) return null;
+    const str = String(scheduledAt).trim();
+    const hasTimezone = /Z|[+-]\d{2}(:?\d{2})?$/i.test(str);
+    if (hasTimezone) {
+      const d = new Date(str);
+      if (isNaN(d.getTime())) throw new Error('Invalid scheduled_at date format.');
+      return d.toISOString();
+    }
+
+    if (timezoneOffsetMinutes !== null && timezoneOffsetMinutes !== undefined && !isNaN(timezoneOffsetMinutes)) {
+      const offsetMinutes = parseInt(timezoneOffsetMinutes, 10);
+      const ref = new Date(str + 'Z');
+      const utcTime = new Date(ref.getTime() - offsetMinutes * 60 * 1000);
+      return utcTime.toISOString();
+    }
+
+    const d = new Date(str);
+    if (isNaN(d.getTime())) throw new Error('Invalid scheduled_at date format.');
+    return d.toISOString();
+  }
+
   static async createPost({
     userId,
     content,
     scheduledAt,
+    timezoneOffset = null,
     mediaUrl = null,
     mediaType = 'none',
     mediaAssetUrn = null,
@@ -23,15 +49,12 @@ export class PostService {
       throw new Error('Scheduled date/time is required.');
     }
 
-    const scheduledDate = new Date(scheduledAt);
-    if (isNaN(scheduledDate.getTime())) {
-      throw new Error('Invalid scheduled_at date format. Must be a valid ISO-8601 string.');
-    }
+    const scheduledDateIso = this.parseScheduledDate(scheduledAt, timezoneOffset);
 
     const insertPayload = {
       user_id: userId,
       content: content.trim(),
-      scheduled_at: scheduledDate.toISOString(),
+      scheduled_at: scheduledDateIso,
       media_url: mediaUrl,
       media_type: mediaType || 'none',
       status: status || 'pending',

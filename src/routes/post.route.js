@@ -5,6 +5,7 @@ import {
   handleGetPostById,
   handleUpdatePost,
   handleDeletePost,
+  handleSyncLinkedInPosts,
   handleGetPostStats,
 } from '../controllers/post.controller.js';
 import { handlePublishPostNow } from '../controllers/publish.controller.js';
@@ -29,5 +30,8 @@ router.post('/:id/publish-now', handlePublishPostNow);
 router.get('/:id', handleGetPostById);
 router.put('/:id', handleUpdatePost);
 router.delete('/:id', handleDeletePost);
+
+// Sync recent published posts from LinkedIn
+router.post('/sync-linkedin', handleSyncLinkedInPosts);
 
 export default router;

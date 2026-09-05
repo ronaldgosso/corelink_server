@@ -467,4 +467,93 @@ export class LinkedInService {
 
     return results;
   }
+  /**
+   * Permanently deletes a post from LinkedIn REST API
+   */
+  static async deletePostFromLinkedIn({ accessToken, postUrn }) {
+    if (!accessToken) {
+      throw new Error('LinkedIn access token is required for deleting posts.');
+    }
+    if (!postUrn) {
+      throw new Error('LinkedIn post URN is required.');
+    }
+
+    const apiVersion = config.linkedin.apiVersion || '202401';
+    const encodedUrn = encodeURIComponent(postUrn);
+    const response = await fetch(`https://api.linkedin.com/rest/posts/${encodedUrn}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'LinkedIn-Version': apiVersion,
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+    });
+
+    if (!response.ok && response.status !== 204 && response.status !== 404) {
+      const errText = await response.text();
+      throw new Error(`LinkedIn Delete Post Failed (${response.status}): ${errText}`);
+    }
+
+    return { success: true, postUrn };
+  }
+
+  /**
+   * Fetches author's recent posts directly from LinkedIn REST API
+   */
+  static async fetchAuthorPostsFromLinkedIn({ accessToken, personId, count = 50 }) {
+    if (!accessToken) {
+      throw new Error('LinkedIn access token is required.');
+    }
+    if (!personId) {
+      throw new Error('LinkedIn person ID is required.');
+    }
+
+    const author = personId.startsWith('urn:li:') ? personId : `urn:li:person:${personId}`;
+    const apiVersion = config.linkedin.apiVersion || '202401';
+    const encodedAuthor = encodeURIComponent(author);
+
+    const url = `https://api.linkedin.com/rest/posts?author=${encodedAuthor}&q=author&count=${count}&sortBy=CREATED`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'LinkedIn-Version': apiVersion,
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`LinkedIn Fetch Posts Failed (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    const elements = data.elements || [];
+
+    return elements.map((item) => {
+      let commentaryText = '';
+      if (typeof item.commentary === 'string') {
+        commentaryText = item.commentary;
+      } else if (item.commentary && typeof item.commentary.text === 'string') {
+        commentaryText = item.commentary.text;
+      }
+
+      let mediaAssetUrn = null;
+      let mediaType = 'none';
+      if (item.content?.media?.id) {
+        mediaAssetUrn = item.content.media.id;
+        mediaType = mediaAssetUrn.includes('video') ? 'video' : 'image';
+      }
+
+      const publishedAt = item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString();
+
+      return {
+        linkedinPostUrn: item.id,
+        content: commentaryText,
+        mediaAssetUrn,
+        mediaType,
+        publishedAt,
+      };
+    });
+  }
 }

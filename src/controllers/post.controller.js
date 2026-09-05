@@ -152,9 +152,12 @@ export const handleUpdatePost = async (req, res) => {
 export const handleDeletePost = async (req, res) => {
   try {
     const { id } = req.params;
+    const deleteFromLinkedIn = req.query.deleteFromLinkedIn === 'true' || req.body?.deleteFromLinkedIn === true;
+
     const result = await PostService.deletePost({
       userId: req.user.id,
       postId: id,
+      deleteFromLinkedIn,
     });
 
     return res.status(200).json({
@@ -166,6 +169,25 @@ export const handleDeletePost = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: error.message || 'Failed to delete post',
+    });
+  }
+};
+
+export const handleSyncLinkedInPosts = async (req, res) => {
+  try {
+    const result = await PostService.syncLinkedInPosts({
+      userId: req.user.id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error('Sync LinkedIn posts error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to synchronize LinkedIn posts',
     });
   }
 };

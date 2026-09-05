@@ -1,3 +1,5 @@
+import { LinkedInService } from './linkedin.service.js';
+import { decrypt } from '../utils/crypto.js';
 import { supabaseAdmin } from '../config/supabase.js';
 
 export class PostService {
@@ -137,7 +139,34 @@ export class PostService {
   /**
    * Deletes a scheduled post
    */
-  static async deletePost({ userId, postId }) {
+  static async deletePost({ userId, postId, deleteFromLinkedIn = false }) {
+    const post = await this.getPostById({ userId, postId });
+    if (!post) {
+      throw new Error('Post not found in database.');
+    }
+
+    let linkedInDeleted = false;
+    if (deleteFromLinkedIn && post.linkedinPostUrn) {
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('Author profile not found for LinkedIn post deletion.');
+      }
+
+      if (profile.encrypted_access_token && profile.encrypted_access_token !== 'DISCONNECTED') {
+        const accessToken = decrypt(profile.encrypted_access_token);
+        await LinkedInService.deletePostFromLinkedIn({
+          accessToken,
+          postUrn: post.linkedinPostUrn,
+        });
+        linkedInDeleted = true;
+      }
+    }
+
     const { error } = await supabaseAdmin
       .from('posts')
       .delete()
@@ -149,7 +178,76 @@ export class PostService {
       throw new Error(`Failed to delete post: ${error.message}`);
     }
 
-    return { success: true, message: 'Post deleted successfully.' };
+    return {
+      success: true,
+      message: linkedInDeleted
+        ? 'Post permanently deleted from LinkedIn feed and CoreLink database.'
+        : 'Post removed from CoreLink database.',
+      linkedInDeleted,
+    };
+  }
+
+  /**
+   * Synchronizes recent posts from user's live LinkedIn account into CoreLink
+   */
+  static async syncLinkedInPosts({ userId }) {
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error('User profile not found.');
+    }
+
+    if (!profile.encrypted_access_token || profile.encrypted_access_token === 'DISCONNECTED') {
+      throw new Error('LinkedIn account is not connected. Please connect LinkedIn first.');
+    }
+
+    const accessToken = decrypt(profile.encrypted_access_token);
+    const linkedInPosts = await LinkedInService.fetchAuthorPostsFromLinkedIn({
+      accessToken,
+      personId: profile.linkedin_member_id,
+      count: 50,
+    });
+
+    // Fetch existing posts with linkedin_post_urn
+    const { data: existingPosts } = await supabaseAdmin
+      .from('posts')
+      .select('linkedin_post_urn')
+      .eq('user_id', userId)
+      .not('linkedin_post_urn', 'is', null);
+
+    const existingUrns = new Set((existingPosts || []).map((p) => p.linkedin_post_urn));
+
+    let importedCount = 0;
+    for (const item of linkedInPosts) {
+      if (!item.linkedinPostUrn || existingUrns.has(item.linkedinPostUrn)) {
+        continue;
+      }
+
+      await supabaseAdmin.from('posts').insert({
+        user_id: userId,
+        content: item.content || 'LinkedIn Update',
+        status: 'published',
+        media_asset_urn: item.mediaAssetUrn,
+        media_type: item.mediaType,
+        scheduled_at: item.publishedAt,
+        published_at: item.publishedAt,
+        linkedin_post_urn: item.linkedinPostUrn,
+      });
+
+      existingUrns.add(item.linkedinPostUrn);
+      importedCount += 1;
+    }
+
+    return {
+      success: true,
+      totalFetched: linkedInPosts.length,
+      importedCount,
+      message: `Successfully synchronized ${importedCount} new posts from LinkedIn (${linkedInPosts.length} total found).`,
+    };
   }
 
   /**

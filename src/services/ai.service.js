@@ -9,13 +9,13 @@ export class AIService {
   static getClient() {
     const apiKey = config.mistral.apiKey;
     if (!apiKey) {
-      throw new Error('MISTRAL_API_KEY is not configured on the server.');
+      throw new Error('AI API key is not configured on the server.');
     }
     return new Mistral({ apiKey });
   }
 
   /**
-   * Generates a viral LinkedIn post draft using Mistral AI
+   * Generates a viral LinkedIn post draft using AI
    */
   static async generatePost({ userId, topic, tone = 'professional', hookLength = 'medium', includeHashtags = true }) {
     if (!topic || topic.trim().length === 0) {
@@ -67,7 +67,7 @@ Respond strictly in valid JSON format:
 
     const rawContent = chatResponse.choices?.[0]?.message?.content;
     if (!rawContent) {
-      throw new Error('Empty response received from Mistral AI.');
+      throw new Error('Empty response received from AI service.');
     }
 
     let parsedResult;

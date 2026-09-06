@@ -1,5 +1,6 @@
 import { AIService } from '../services/ai.service.js';
 import { getDailyAiUsage } from '../middlewares/aiRateLimiter.js';
+import { redisService, TTL } from '../services/redis.service.js';
 
 export const handleGetAiQuota = async (req, res) => {
   try {
@@ -12,10 +13,31 @@ export const handleGetAiQuota = async (req, res) => {
     }
 
     const tzOffset = req.headers['x-timezone-offset'] || req.query.timezone_offset || 0;
+    const cacheKey = `cache:ai_quota:${userId}:${tzOffset}`;
+
+    // 1. Check Redis cache
+    const cached = await redisService.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        source: 'REDIS',
+        quota: cached,
+      });
+    }
+
+    // 2. Compute quota from Supabase DB on cache miss
     const quota = await getDailyAiUsage({ userId, timezoneOffset: tzOffset });
+
+    // 3. Cache TTL: If remaining <= 0, cache until midnight. If remaining > 0, cache for 60s
+    const ttlSeconds = quota.remaining <= 0
+      ? Math.max(quota.secondsRemaining || 3600, 60)
+      : TTL.AI_QUOTA_ACTIVE;
+
+    await redisService.set(cacheKey, quota, ttlSeconds);
 
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       quota,
     });
   } catch (error) {
@@ -48,8 +70,14 @@ export const handleGeneratePost = async (req, res) => {
       includeHashtags: finalIncludeHashtags,
     });
 
+    // Invalidate cached AI quota so next check immediately recalculates fresh remaining count
+    if (req.user?.id) {
+      await redisService.delPattern(`cache:ai_quota:${req.user.id}:*`);
+    }
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       data: result,
       quota: req.aiQuota || null,
     });
@@ -78,8 +106,14 @@ export const handleOptimizeHook = async (req, res) => {
       content,
     });
 
+    // Invalidate cached AI quota
+    if (req.user?.id) {
+      await redisService.delPattern(`cache:ai_quota:${req.user.id}:*`);
+    }
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       hooks,
       quota: req.aiQuota || null,
     });

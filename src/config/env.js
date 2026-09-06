@@ -38,6 +38,11 @@ export const config = {
     redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:5000/api/auth/linkedin/callback',
     apiVersion: process.env.LINKEDIN_VERSION || '202509',
   },
+
+  // Redis Caching Configuration
+  redis: {
+    url: process.env.REDIS_URL || '',
+  },
 };
 
 /**

@@ -4,7 +4,7 @@ This guide explains how `corelink_server` is configured, deployed, and managed a
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 1. [Deployment Overview](#deployment-overview)
 2. [Live Endpoints](#live-endpoints)
 3. [How It Works (Serverless Architecture)](#how-it-works-serverless-architecture)
@@ -12,7 +12,7 @@ This guide explains how `corelink_server` is configured, deployed, and managed a
    - [Method 1: Automatic Deployments via GitHub (Recommended)](#method-1-automatic-deployments-via-github-recommended)
    - [Method 2: Deploying via Vercel CLI](#method-2-deploying-via-vercel-cli)
 5. [Managing Environment Variables](#managing-environment-variables)
-   - [Option A: Infisical ➔ Vercel Sync (Recommended)](#option-a-infisical--vercel-sync-recommended)
+   - [Option A: Infisical -> Vercel Sync (Recommended)](#option-a-infisical--vercel-sync-recommended)
    - [Option B: Vercel Web Dashboard](#option-b-vercel-web-dashboard)
    - [Option C: Vercel CLI](#option-c-vercel-cli)
 6. [Serverless Considerations & Best Practices](#serverless-considerations--best-practices)
@@ -103,10 +103,10 @@ npx vercel --prod
 
 Ensure your production environment variables (such as `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `NODE_ENV`, `CORS_ORIGIN`) are configured on Vercel.
 
-### Option A: Infisical ➔ Vercel Sync (Recommended)
+### Option A: Infisical -> Vercel Sync (Recommended)
 You can connect Infisical directly to Vercel so any changes in Infisical automatically sync to Vercel:
 1. Open your project in [Infisical Web App](https://app.infisical.com).
-2. Go to **Integrations** ➔ Select **Vercel**.
+2. Go to **Integrations** -> Select **Vercel**.
 3. Link your Infisical `prod` environment to your Vercel `Production` environment.
 
 ### Option B: Vercel Web Dashboard
@@ -182,7 +182,7 @@ To inspect real-time logs and errors from your deployed server:
 npx vercel logs https://corelink-server.vercel.app
 ```
 
-Or view interactive execution logs, invocation metrics, and runtime latency directly in the **Vercel Dashboard ➔ Logs Tab**.
+Or view interactive execution logs, invocation metrics, and runtime latency directly in the **Vercel Dashboard -> Logs Tab**.
 
 ---
 

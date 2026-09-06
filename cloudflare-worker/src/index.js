@@ -35,7 +35,7 @@ async function dispatchPublishingJob(env, triggerSource, cronPattern = '*/10 * *
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      console.log(`[CRON DISPATCH] (${triggerSource}) Attempt ${attempt}/${maxRetries + 1} ➔ ${targetUrl}`);
+      console.log(`[CRON DISPATCH] (${triggerSource}) Attempt ${attempt}/${maxRetries + 1} -> ${targetUrl}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',

@@ -56,7 +56,7 @@ export const validateEnv = () => {
     if (!config.linkedin.clientSecret) missing.push('LINKEDIN_CLIENT_SECRET');
 
     if (missing.length > 0) {
-      console.warn(`⚠️ [ENV WARNING] Missing critical production environment variables: ${missing.join(', ')}`);
+      console.warn(`[ENV WARNING] Missing critical production environment variables: ${missing.join(', ')}`);
     }
   }
 };

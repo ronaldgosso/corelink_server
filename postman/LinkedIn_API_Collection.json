@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8f3b2d1c-9a4e-4f7b-8c6e-1d5a7b9c3e2f",
     "name": "LinkedIn API - Sign In & Share on LinkedIn",
-    "description": "# LinkedIn API Collection (Sign In with LinkedIn & Share on LinkedIn)\n\nThis collection contains all official REST & OAuth 2.0 endpoints for **Sign In with LinkedIn (OpenID Connect)** and **Share on LinkedIn (REST Posts & Media API)**.\n\n### 🚀 Features Covered:\n1. **Authentication (OAuth 2.0 / OpenID Connect)**: Authorization URL, Token Exchange, Refresh Token, Token Introspection, Revocation.\n2. **User Profile (Sign In with LinkedIn)**: OpenID Connect UserInfo (`/v2/userinfo`), Member Details.\n3. **Share on LinkedIn (REST Posts API)**:\n   - Text Posts\n   - Link / Article Shares\n   - Image Posts (3-step upload & post flow)\n   - Video Posts (upload initialization, binary upload & finalize)\n   - Document / PDF Carousel Posts\n   - Retrieve Posts (single post by URN, feed/author posts)\n   - Delete Posts\n4. **Company / Organization Page Sharing**: Organization posts with `urn:li:organization:{id}`.\n\n### 🔧 Compatibility:\n- Fully compatible with **Postman** and **Hoppscotch** (Postman v2.1.0 Schema).\n- Uses environment variables like `{{client_id}}`, `{{client_secret}}`, `{{redirect_uri}}`, `{{access_token}}`, `{{person_id}}`, etc.",
+    "description": "# LinkedIn API Collection (Sign In with LinkedIn & Share on LinkedIn)\n\nThis collection contains all official REST & OAuth 2.0 endpoints for **Sign In with LinkedIn (OpenID Connect)** and **Share on LinkedIn (REST Posts & Media API)**.\n\n### Features Covered:\n1. **Authentication (OAuth 2.0 / OpenID Connect)**: Authorization URL, Token Exchange, Refresh Token, Token Introspection, Revocation.\n2. **User Profile (Sign In with LinkedIn)**: OpenID Connect UserInfo (`/v2/userinfo`), Member Details.\n3. **Share on LinkedIn (REST Posts API)**:\n   - Text Posts\n   - Link / Article Shares\n   - Image Posts (3-step upload & post flow)\n   - Video Posts (upload initialization, binary upload & finalize)\n   - Document / PDF Carousel Posts\n   - Retrieve Posts (single post by URN, feed/author posts)\n   - Delete Posts\n4. **Company / Organization Page Sharing**: Organization posts with `urn:li:organization:{id}`.\n\n###  Compatibility:\n- Fully compatible with **Postman** and **Hoppscotch** (Postman v2.1.0 Schema).\n- Uses environment variables like `{{client_id}}`, `{{client_secret}}`, `{{redirect_uri}}`, `{{access_token}}`, `{{person_id}}`, etc.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -376,7 +376,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Excited to announce our new Corelink Server integration for automated scheduling and publishing! 🚀 #LinkedInAPI #Tech #FullStack\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Excited to announce our new Corelink Server integration for automated scheduling and publishing! #LinkedInAPI #Tech #FullStack\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -697,7 +697,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Here is our visual roadmap for Corelink Server integration! 📊\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Roadmap Graphic\",\n      \"id\": \"{{image_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Here is our visual roadmap for Corelink Server integration! \",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Roadmap Graphic\",\n      \"id\": \"{{image_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -875,7 +875,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Watch our quick 1-minute demo video of Corelink in action! 🎥\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Corelink Demo Video\",\n      \"id\": \"{{video_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Watch our quick 1-minute demo video of Corelink in action! \",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Corelink Demo Video\",\n      \"id\": \"{{video_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1006,7 +1006,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Swipe through this PDF slide deck on architecture best practices! 📑\",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Architecture Best Practices Deck\",\n      \"id\": \"{{document_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
+              "raw": "{\n  \"author\": \"urn:li:person:{{person_id}}\",\n  \"commentary\": \"Swipe through this PDF slide deck on architecture best practices! \",\n  \"visibility\": \"PUBLIC\",\n  \"distribution\": {\n    \"feedDistribution\": \"MAIN_FEED\",\n    \"targetEntities\": [],\n    \"thirdPartyDistributionChannels\": []\n  },\n  \"content\": {\n    \"media\": {\n      \"title\": \"Architecture Best Practices Deck\",\n      \"id\": \"{{document_asset_urn}}\"\n    }\n  },\n  \"lifecycleState\": \"PUBLISHED\",\n  \"isReshareDisabledByAuthor\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"

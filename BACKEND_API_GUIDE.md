@@ -4,7 +4,7 @@ This document describes the centralized **Backend for Frontend (BFF)** API archi
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 1. [Centralized Architecture Overview](#centralized-architecture-overview)
 2. [Supabase Database Schema & DDL](#supabase-database-schema--ddl)
 3. [Postman & Hoppscotch Collections](#postman--hoppscotch-collections)
@@ -97,13 +97,13 @@ CREATE POLICY "Users can delete own posts" ON posts FOR DELETE USING (auth.uid()
 
 ## 3. Postman & Hoppscotch Collections
 
-### 📥 Files
+### Files
 * **Collection:** [`postman/Corelink_Backend_API_Collection.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/Corelink_Backend_API_Collection.json)
 * **Environment:** [`postman/Corelink_Backend_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/Corelink_Backend_Environment.json)
 
 ### Importing
-1. **Postman**: Click **Import** ➔ Select both JSON files ➔ Select **Corelink Backend API - Environment**.
-2. **Hoppscotch**: Import Collection (v2.1) + Import Environment ➔ Set active.
+1. **Postman**: Click **Import** -> Select both JSON files -> Select **Corelink Backend API - Environment**.
+2. **Hoppscotch**: Import Collection (v2.1) + Import Environment -> Set active.
 
 ---
 

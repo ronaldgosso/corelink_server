@@ -5,7 +5,7 @@
 
 ---
 
-## 🏛️ System Architecture
+##  System Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
@@ -17,10 +17,10 @@
 ┌─────────────────────────────────────────────────────────┐
 │              corelink_server (Vercel Node.js)           │
 │                                                         │
-│  • /api/auth/linkedin    ➔ OAuth code exchange & AES-256│
-│  • /api/generate         ➔ Mistral AI (mistral-small)   │
-│  • /api/posts            ➔ Supabase CRUD & schedule     │
-│  • /api/publish          ➔ Atomic claim, decrypt, post  │
+│  • /api/auth/linkedin    -> OAuth code exchange & AES-256│
+│  • /api/generate         -> Mistral AI (mistral-small)   │
+│  • /api/posts            -> Supabase CRUD & schedule     │
+│  • /api/publish          -> Atomic claim, decrypt, post  │
 └───┬────────────────────────┬────────────────────────┬───┘
     │                        │                        │
     ▼                        ▼                        ▼
@@ -37,7 +37,7 @@
 
 ---
 
-## 🚀 Tech Stack Matrix
+## Tech Stack Matrix
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
@@ -51,22 +51,22 @@
 
 ---
 
-## 📚 Documentation Directory
+##  Documentation Directory
 
 | Document | Purpose |
 | :--- | :--- |
-| 🌟 [**PROJECT_DOCUMENTATION.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/PROJECT_DOCUMENTATION.md) | **Master Project Specification**: Full mobile app, backend, web dashboard, architecture, UI/UX design tokens & layman guide. |
-| 📖 [**BACKEND_API_GUIDE.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/BACKEND_API_GUIDE.md) | Full Backend API guide, **Supabase SQL DDL, RLS policies, indexes**, and Cloudflare Worker script. |
-| 🗄️ [**supabase/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/supabase/README.md) | Supabase PostgreSQL schema, RLS policies, atomic claim function, and performance indexes. |
-| ⚡ [**cloudflare-worker/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/cloudflare-worker/README.md) | Cloudflare Worker Cron Trigger engine setup, Wrangler CLI configuration, and edge deployment. |
-| 🔑 [**INFISICAL.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/INFISICAL.md) | Guide to syncing & sharing `.env` variables across the team with Infisical CLI. |
-| ☁️ [**VERCEL.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/VERCEL.md) | Serverless Express deployment on Vercel, live URLs, logs, and cron configurations. |
-| 🔗 [**LINKEDIN_API_GUIDE.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/LINKEDIN_API_GUIDE.md) | Official LinkedIn REST & OAuth 2.0 endpoints, scopes, media upload flows (images, videos, PDFs). |
+|  [**PROJECT_DOCUMENTATION.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/PROJECT_DOCUMENTATION.md) | **Master Project Specification**: Full mobile app, backend, web dashboard, architecture, UI/UX design tokens & layman guide. |
+|  [**BACKEND_API_GUIDE.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/BACKEND_API_GUIDE.md) | Full Backend API guide, **Supabase SQL DDL, RLS policies, indexes**, and Cloudflare Worker script. |
+|  [**supabase/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/supabase/README.md) | Supabase PostgreSQL schema, RLS policies, atomic claim function, and performance indexes. |
+| <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> [**cloudflare-worker/README.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/cloudflare-worker/README.md) | Cloudflare Worker Cron Trigger engine setup, Wrangler CLI configuration, and edge deployment. |
+|  [**INFISICAL.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/INFISICAL.md) | Guide to syncing & sharing `.env` variables across the team with Infisical CLI. |
+|  [**VERCEL.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/VERCEL.md) | Serverless Express deployment on Vercel, live URLs, logs, and cron configurations. |
+|  [**LINKEDIN_API_GUIDE.md**](file:///c:/Users/Neptune/Documents/Projects/corelink_server/LINKEDIN_API_GUIDE.md) | Official LinkedIn REST & OAuth 2.0 endpoints, scopes, media upload flows (images, videos, PDFs). |
 
 
 ---
 
-## 🛠️ Getting Started (Local Development)
+## Getting Started (Local Development)
 
 ### 1. Prerequisites
 - **Node.js:** `v20+`
@@ -96,7 +96,7 @@ npm run dev
 
 ---
 
-## 📦 API Collections (Postman & Hoppscotch)
+##  API Collections (Postman & Hoppscotch)
 
 Two pre-built, production-ready collections formatted in **Postman v2.1.0 Schema** (compatible with Postman and Hoppscotch):
 
@@ -112,7 +112,7 @@ Two pre-built, production-ready collections formatted in **Postman v2.1.0 Schema
 
 ---
 
-## 🌐 Live Deployments
+##  Live Deployments
 
 * **Production URL:** [https://corelink-server.vercel.app](https://corelink-server.vercel.app)
 * **Health Endpoint:** [https://corelink-server.vercel.app/api/health](https://corelink-server.vercel.app/api/health)

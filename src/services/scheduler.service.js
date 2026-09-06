@@ -13,7 +13,7 @@ class SchedulerService {
     }
 
     this.intervalMs = intervalMs;
-    console.log(`⏱️ [SCHEDULER] Background post scheduler initialized (interval: ${this.intervalMs / 1000}s)`);
+    console.log(`[SCHEDULER] Background post scheduler initialized (interval: ${this.intervalMs / 1000}s)`);
 
     // Run initial scan 2 seconds after boot
     setTimeout(() => this.runQueue(), 2000);
@@ -28,7 +28,7 @@ class SchedulerService {
     if (this.intervalHandle) {
       clearInterval(this.intervalHandle);
       this.intervalHandle = null;
-      console.log('🛑 [SCHEDULER] Background post scheduler stopped');
+      console.log('[SCHEDULER] Background post scheduler stopped');
     }
   }
 
@@ -44,10 +44,10 @@ class SchedulerService {
       });
 
       if (summary && summary.totalClaimed > 0) {
-        console.log(`🚀 [SCHEDULER] Processed scheduled posts: ${summary.succeeded} published, ${summary.failed} failed (${summary.totalClaimed} total claimed)`);
+        console.log(`[SCHEDULER] Processed scheduled posts: ${summary.succeeded} published, ${summary.failed} failed (${summary.totalClaimed} total claimed)`);
       }
     } catch (err) {
-      console.error('❌ [SCHEDULER] Error processing publishing queue:', err.message);
+      console.error('[SCHEDULER] Error processing publishing queue:', err.message);
     } finally {
       this.isProcessing = false;
     }

@@ -4,7 +4,7 @@ This guide covers how to set up, sync, and share environment variables and secre
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 1. [Why Use Infisical?](#why-use-infisical)
 2. [Prerequisites & Installation](#prerequisites--installation)
 3. [Authentication & Initial Setup](#authentication--initial-setup)
@@ -121,7 +121,7 @@ This creates a `.infisical.json` configuration file at the root:
 }
 ```
 
-> ⚠️ **Important:**
+> **Important:**
 > `.infisical.json` contains **no secrets** (only project/workspace IDs). **Commit this file to git** so all team members are automatically pointed to the same Infisical project.
 
 ---
@@ -174,7 +174,7 @@ infisical export --env=dev --format=json > secrets.json
 infisical export --env=dev --format=yaml > secrets.yaml
 ```
 
-> 🔒 **Security Notice:**
+> **Security Notice:**
 > Always verify that `.env` is listed in your `.gitignore` to prevent accidental commits of plaintext credentials.
 
 ---
@@ -183,7 +183,7 @@ infisical export --env=dev --format=yaml > secrets.yaml
 
 #### 1. Import Existing `.env` into Infisical
 - **Via Infisical Dashboard (Easiest for bulk import):**
-  Open your project in the Infisical Web App ➔ Click **Import from .env** ➔ Paste `.env` content ➔ Select environment (`dev`, `staging`, `prod`) ➔ Save.
+  Open your project in the Infisical Web App -> Click **Import from .env** -> Paste `.env` content -> Select environment (`dev`, `staging`, `prod`) -> Save.
 - **Via CLI (Iterative upload):**
   ```bash
   # Set a single secret

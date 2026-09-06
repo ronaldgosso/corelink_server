@@ -3,8 +3,8 @@ import { config } from './src/config/env.js';
 import { schedulerService } from './src/services/scheduler.service.js';
 
 const server = app.listen(config.port, () => {
-  console.log(`🚀 Corelink Server is running on port ${config.port} in ${config.nodeEnv} mode`);
-  console.log(`👉 Health check: http://localhost:${config.port}${config.apiPrefix}/health`);
+  console.log(`Corelink Server is running on port ${config.port} in ${config.nodeEnv} mode`);
+  console.log(`Health check: http://localhost:${config.port}${config.apiPrefix}/health`);
 
   // Start background post scheduler (runs every 30s)
   schedulerService.start(30000);

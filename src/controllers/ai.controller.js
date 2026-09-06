@@ -1,4 +1,31 @@
 import { AIService } from '../services/ai.service.js';
+import { getDailyAiUsage } from '../middlewares/aiRateLimiter.js';
+
+export const handleGetAiQuota = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required.',
+      });
+    }
+
+    const tzOffset = req.headers['x-timezone-offset'] || req.query.timezone_offset || 0;
+    const quota = await getDailyAiUsage({ userId, timezoneOffset: tzOffset });
+
+    return res.status(200).json({
+      success: true,
+      quota,
+    });
+  } catch (error) {
+    console.error('Get AI quota error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve daily AI quota',
+    });
+  }
+};
 
 export const handleGeneratePost = async (req, res) => {
   try {
@@ -24,6 +51,7 @@ export const handleGeneratePost = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: result,
+      quota: req.aiQuota || null,
     });
   } catch (error) {
     console.error('AI post generation error:', error);
@@ -45,11 +73,15 @@ export const handleOptimizeHook = async (req, res) => {
       });
     }
 
-    const hooks = await AIService.optimizeHooks({ content });
+    const hooks = await AIService.optimizeHooks({
+      userId: req.user?.id,
+      content,
+    });
 
     return res.status(200).json({
       success: true,
       hooks,
+      quota: req.aiQuota || null,
     });
   } catch (error) {
     console.error('AI hook optimization error:', error);

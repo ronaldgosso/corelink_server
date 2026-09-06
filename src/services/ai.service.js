@@ -123,7 +123,7 @@ Respond strictly in valid JSON format:
   /**
    * Analyzes an existing draft and generates 3 viral opening hook variations
    */
-  static async optimizeHooks({ content }) {
+  static async optimizeHooks({ userId = null, content }) {
     if (!content || content.trim().length === 0) {
       throw new Error('Post content is required to optimize hooks.');
     }
@@ -164,6 +164,26 @@ Respond strictly in valid JSON format:
       parsedResult = { hooks: [] };
     }
 
-    return parsedResult.hooks || [];
+    const hooks = parsedResult.hooks || [];
+
+    // Log hook optimization for quota & metrics
+    if (userId) {
+      try {
+        await supabaseAdmin.from('ai_generation_logs').insert({
+          id: crypto.randomUUID(),
+          user_id: userId,
+          topic: 'Hook Optimization',
+          tone: 'optimization',
+          generated_content: JSON.stringify(hooks),
+          model,
+          created_at: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.warn('Could not log hook optimization to Supabase:', err.message);
+      }
+    }
+
+    return hooks;
   }
 }
+

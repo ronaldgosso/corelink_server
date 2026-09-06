@@ -5,6 +5,7 @@ import aiRoutes from './ai.route.js';
 import postRoutes from './post.route.js';
 import publishRoutes from './publish.route.js';
 import mediaRoutes from './media.route.js';
+import analyticsRoutes from './analytics.routes.js';
 
 const router = Router();
 
@@ -15,5 +16,7 @@ router.use('/generate', aiRoutes);
 router.use('/posts', postRoutes);
 router.use('/publish', publishRoutes);
 router.use('/media', mediaRoutes);
+router.use('/analytics', analyticsRoutes);
 
 export default router;
+

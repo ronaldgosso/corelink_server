@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "9b1e2c3d-4f5a-6b7c-8d9e-0f1a2b3c4d5e",
     "name": "Corelink Backend API (Centralized BFF & Supabase Engine)",
-    "description": "# Corelink Server Centralized Backend API\n\nThis collection provides all centralized backend endpoints for the **LinkedIn AI Post Scheduler** mobile app and scheduler engine.\n\n###  Centralized Architecture (Backend-as-a-Gateway):\nInstead of the mobile app directly hitting multiple disparate services, **`corelink_server` acts as the single source of truth** for:\n1. **Authentication & Profile State**: LinkedIn OAuth code exchange, AES-256 token encryption, and Supabase user profile management.\n2. **AI Content Generation**: Mistral AI integration (`mistral-small`) for LinkedIn posts & hook optimization.\n3. **Post & Schedule Management**: Full Supabase PostgreSQL-backed CRUD for drafts, scheduled posts, calendar views, and post stats.\n4. **Publishing Pipeline & Cron Engine**: Cloudflare Worker cron-triggered queue processing and instant publishing.\n\n###  Compatibility:\n- Fully compatible with **Postman** and **Hoppscotch** (Postman v2.1.0 schema).\n- Environment variables: `{{base_url}}`, `{{auth_token}}`, `{{cron_secret}}`, `{{post_id}}`.",
+    "description": "# Corelink Server Centralized Backend API\n\nThis collection provides all centralized backend endpoints for the **LinkedIn AI Post Scheduler** mobile app and scheduler engine.\n\n###  Centralized Architecture (Backend-as-a-Gateway):\nInstead of the mobile app directly hitting multiple disparate services, **`corelink_server` acts as the single source of truth** for:\n1. **Authentication & Profile State**: LinkedIn OAuth code exchange, AES-256 token encryption, and Supabase user profile management.\n2. **AI Content Generation**: CoreLink AI Engine for LinkedIn posts & hook optimization.\n3. **Post & Schedule Management**: Full Supabase PostgreSQL-backed CRUD for drafts, scheduled posts, calendar views, and post stats.\n4. **Publishing Pipeline & Cron Engine**: Cloudflare Worker cron-triggered queue processing and instant publishing.\n\n###  Compatibility:\n- Fully compatible with **Postman** and **Hoppscotch** (Postman v2.1.0 schema).\n- Environment variables: `{{base_url}}`, `{{auth_token}}`, `{{cron_secret}}`, `{{post_id}}`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -128,8 +128,8 @@
       ]
     },
     {
-      "name": "2. AI Post Generation (Mistral AI Engine)",
-      "description": "Endpoints communicating with Mistral AI SDK (`mistral-small`) to generate viral hooks, formatted post drafts, and hashtag recommendations.",
+      "name": "2. AI Post Generation (CoreLink AI Engine)",
+      "description": "Endpoints communicating with CoreLink AI Engine to generate viral hooks, formatted post drafts, and hashtag recommendations.",
       "item": [
         {
           "name": "2.1 Generate LinkedIn Post Draft",
@@ -170,7 +170,7 @@
                 "generate"
               ]
             },
-            "description": "### 2.1 Generate Post Draft\n\nCalls Mistral AI (`mistral-small`) with optimized system prompts designed specifically for LinkedIn algorithms:\n- Attention-grabbing opening hook (lines 1–2).\n- Double line-breaks for mobile readability.\n- Actionable takeaways.\n- Curated 3–5 professional hashtags.\n\n**Sample Response:**\n```json\n{\n  \"success\": true,\n  \"draft\": {\n    \"hook\": \"Most startups spend $50/mo on idle VPS servers they don't even utilize.\",\n    \"content\": \"Most startups spend $50/mo on idle VPS servers they don't even utilize.\\n\\nHere is why we went 100% serverless for Corelink:\\n\\n1. Zero idle cost (Vercel + Supabase)\\n2. Global edge crons under 10ms CPU (Cloudflare Workers)\\n3. Infinite scale with zero ops overhead\\n\\nWhat is your preferred MVP stack in 2026?\\n\\n#Serverless #NodeJS #Startup #Cloud #WebDev\",\n    \"hashtags\": [\"#Serverless\", \"#NodeJS\", \"#Startup\", \"#Cloud\", \"#WebDev\"]\n  }\n}\n```"
+            "description": "### 2.1 Generate Post Draft\n\nCalls CoreLink AI Engine with optimized system prompts designed specifically for LinkedIn algorithms:\n- Attention-grabbing opening hook (lines 1–2).\n- Double line-breaks for mobile readability.\n- Actionable takeaways.\n- Curated 3–5 professional hashtags.\n\n**Sample Response:**\n```json\n{\n  \"success\": true,\n  \"draft\": {\n    \"hook\": \"Most startups spend $50/mo on idle VPS servers they don't even utilize.\",\n    \"content\": \"Most startups spend $50/mo on idle VPS servers they don't even utilize.\\n\\nHere is why we went 100% serverless for Corelink:\\n\\n1. Zero idle cost (Vercel + Supabase)\\n2. Global edge crons under 10ms CPU (Cloudflare Workers)\\n3. Infinite scale with zero ops overhead\\n\\nWhat is your preferred MVP stack in 2026?\\n\\n#Serverless #NodeJS #Startup #Cloud #WebDev\",\n    \"hashtags\": [\"#Serverless\", \"#NodeJS\", \"#Startup\", \"#Cloud\", \"#WebDev\"]\n  }\n}\n```"
           },
           "response": []
         },
@@ -703,7 +703,7 @@
     },
     {
       "name": "6. LinkedIn Analytics & Engagement Metrics",
-      "description": "Real-time engagement metrics, reaction breakdowns, impressions, and timeline history cached in Upstash Redis (TTL: 300s).",
+      "description": "Real-time engagement metrics, reaction breakdowns, impressions, and timeline history cached in CoreLink Live Cache (TTL: 300s).",
       "item": [
         {
           "name": "6.1 Get Profile Analytics Overview",
@@ -727,7 +727,7 @@
                 "overview"
               ]
             },
-            "description": "### 6.1 Profile Analytics Overview\n\nAggregates creator KPIs across all published posts (total likes, comments, shares, impressions, and average engagement rate), top 5 performing posts, and 14-day engagement timeline.\n\n**Caching**: Upstash Redis (TTL: 300s, `cache:stats:overview:{userId}`)."
+            "description": "### 6.1 Profile Analytics Overview\n\nAggregates creator KPIs across all published posts (total likes, comments, shares, impressions, and average engagement rate), top 5 performing posts, and 14-day engagement timeline.\n\n**Caching**: CoreLink Live Cache (TTL: 300s, `cache:stats:overview:{userId}`)."
           },
           "response": [
             {
@@ -761,7 +761,7 @@
                 "{{post_id}}"
               ]
             },
-            "description": "### 6.2 Single Post Analytics\n\nRetrieves real-time likes, comments, impressions, engagement rate, and historical snapshots for a specific post. Supports optional `?force=true` query param to bypass cache and sync live with LinkedIn.\n\n**Caching**: Upstash Redis (TTL: 300s, `cache:stats:post:{userId}:{postId}`)."
+            "description": "### 6.2 Single Post Analytics\n\nRetrieves real-time likes, comments, impressions, engagement rate, and historical snapshots for a specific post. Supports optional `?force=true` query param to bypass cache and sync live with LinkedIn.\n\n**Caching**: CoreLink Live Cache (TTL: 300s, `cache:stats:post:{userId}:{postId}`)."
           },
           "response": [
             {

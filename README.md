@@ -18,15 +18,15 @@
 │              corelink_server (Vercel Node.js)           │
 │                                                         │
 │  • /api/auth/linkedin    -> OAuth code exchange & AES-256│
-│  • /api/generate         -> Mistral AI (mistral-small)   │
+│  • /api/generate         -> CoreLink AI Engine           │
 │  • /api/posts            -> Supabase CRUD & schedule     │
 │  • /api/publish          -> Atomic claim, decrypt, post  │
 └───┬────────────────────────┬────────────────────────┬───┘
     │                        │                        │
     ▼                        ▼                        ▼
 ┌─────────────────┐  ┌───────────────┐  ┌──────────────────┐
-│    Supabase     │  │  Mistral AI   │  │   LinkedIn REST  │
-│ (PostgreSQL/RLS)│  │ (mistral-small│  │    (Posts API)   │
+│    Supabase     │  │  CoreLink AI  │  │   LinkedIn REST  │
+│ (PostgreSQL/RLS)│  │    (Engine)   │  │    (Posts API)   │
 └────────▲────────┘  └───────────────┘  └──────────────────┘
          │ (Polls every 10 min)
 ┌────────┴───────────────────────────┐
@@ -44,7 +44,7 @@
 | **Backend Gateway** | Node.js (ES Modules), Express 5 | Centralized API, validation, security, and orchestrator |
 | **Hosting & Compute** | Vercel Serverless Functions | Zero-idle cost, auto-scaling execution |
 | **Database & Auth** | Supabase (PostgreSQL + RLS) | Relational storage for users, encrypted tokens, and posts |
-| **AI Engine** | Mistral AI SDK (`mistral-small`) | High-converting LinkedIn post generation & hook optimization |
+| **AI Engine** | CoreLink AI Engine | High-converting LinkedIn post generation & hook optimization |
 | **Background Cron** | Cloudflare Workers (`*/10 * * * *`) | Serverless scheduled trigger querying due posts (<10ms CPU) |
 | **Social API** | LinkedIn REST API (`/rest/posts`) | OAuth 2.0 OpenID Connect & post publishing |
 | **Secret Management**| Infisical CLI | Team secret synchronization and zero-plaintext runtime injection |

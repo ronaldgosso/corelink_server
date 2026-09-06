@@ -33,14 +33,14 @@ By routing all actions through `corelink_server`, any schema updates, business r
 │                                                         │
 │  • Validation & Auth Middleware                         │
 │  • AES-256 Token Encryption/Decryption                  │
-│  • Mistral AI Prompt Engineering                        │
+│  • CoreLink AI Prompt Engineering                        │
 │  • Business Logic & Idempotent Post Claiming            │
 └───┬────────────────────────┬────────────────────────┬───┘
     │                        │                        │
     ▼                        ▼                        ▼
 ┌─────────────────┐  ┌───────────────┐  ┌──────────────────┐
-│    Supabase     │  │  Mistral AI   │  │   LinkedIn REST  │
-│ (PostgreSQL/RLS)│  │ (mistral-small│  │     (Posts API)  │
+│    Supabase     │  │  CoreLink AI  │  │   LinkedIn REST  │
+│ (PostgreSQL/RLS)│  │    (Engine)   │  │     (Posts API)  │
 └─────────────────┘  └───────────────┘  └──────────────────┘
 ```
 
@@ -143,7 +143,7 @@ Exchanges the LinkedIn authorization `code`, encrypts the token with AES-256, up
 ### 2. AI Post Generation (`/api/generate`)
 
 #### `POST /api/generate`
-Generates an algorithmic-friendly LinkedIn post using Mistral AI (`mistral-small`).
+Generates an algorithmic-friendly LinkedIn post using the proprietary CoreLink AI Engine.
 * **Headers:** `Authorization: Bearer <auth_token>`
 * **Body:**
   ```json

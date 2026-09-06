@@ -216,51 +216,98 @@ Uploads and registers an image or video directly with LinkedIn's 3-step REST upl
 
 ---
 
-### 5. Publishing Pipeline & Cron (`/api/publish`)
+### 6. LinkedIn Analytics & Engagement Metrics (`/api/analytics`)
 
-#### `POST /api/publish` (Cron Worker Dispatcher)
-Triggered by Cloudflare Worker every 10 minutes.
-* **Headers:** `Authorization: Bearer <CRON_SECRET>`
-* **Execution:**
-  1. Queries Supabase for `scheduled_at <= NOW()` and `status = 'pending'`.
-  2. Atomically sets status to `processing`.
-  3. Decrypts AES-256 LinkedIn access token.
-  4. Publishes to LinkedIn REST API (`/rest/posts`).
-  5. Sets status to `published` (or `failed` with error details in `error_log`).
+All analytics endpoints feature Upstash Redis caching (`TTL.POST_STATS`: 300s) and explicitly indicate data origin via `"source": "REDIS" | "SUPABASE"`.
 
-#### `POST /api/posts/:id/publish-now`
-Allows instant publication of an existing draft/scheduled post.
-
----
-
-## 5. Cloudflare Worker Cron Trigger Configuration
-
-Your Cloudflare Worker script (`cloudflare-worker/src/index.js`) runs on `*/10 * * * *` and dispatches to `corelink_server`:
-
-```javascript
-export default {
-  async scheduled(event, env, ctx) {
-    const response = await fetch(`${env.BACKEND_API_URL}/api/publish`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${env.CRON_SECRET}`,
-        'Content-Type': 'application/json'
+#### `GET /api/analytics/overview`
+Creator profile-wide aggregated engagement stats, top 5 performing posts, and 14-day engagement timeline.
+* **Headers:** `Authorization: Bearer <USER_JWT>`
+* **Response (200 OK - Redis Cache Hit):**
+  ```json
+  {
+    "success": true,
+    "source": "REDIS",
+    "data": {
+      "userId": "uuid-here",
+      "totalPublished": 12,
+      "totals": {
+        "likes": 420,
+        "comments": 68,
+        "shares": 24,
+        "impressions": 14850,
+        "interactions": 512,
+        "averageEngagementRate": 3.45
       },
-      body: JSON.stringify({ batchSize: 10 })
-    });
-    console.log(`Cron execution dispatched. Status: ${response.status}`);
+      "topPosts": [ ... ],
+      "timeline": [ ... ],
+      "generatedAt": "2026-09-06T11:45:00.000Z"
+    }
   }
-};
-```
+  ```
+
+#### `GET /api/analytics/posts/:id` (Alias: `GET /api/posts/:id/analytics`)
+Retrieves real-time likes, comments, shares, impressions, and reaction breakdowns for a specific post.
+* **Query Params:** `?force=true` (optional, bypasses cache and syncs live with LinkedIn)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "source": "REDIS",
+    "data": {
+      "postId": "post-uuid",
+      "userId": "user-uuid",
+      "status": "published",
+      "isPublished": true,
+      "linkedinPostUrn": "urn:li:share:71234567890",
+      "metrics": {
+        "likes": 38,
+        "comments": 5,
+        "shares": 2,
+        "impressions": 1120,
+        "engagementRate": 4.02,
+        "reactionBreakdown": {
+          "LIKE": 30,
+          "PRAISE": 5,
+          "EMPATHY": 3
+        }
+      },
+      "metricsLastSyncedAt": "2026-09-06T11:30:00.000Z",
+      "history": [ ... ]
+    }
+  }
+  ```
+
+#### `POST /api/analytics/posts/:id/sync` (Alias: `POST /api/posts/:id/analytics/sync`)
+Explicitly triggers a live fetch against LinkedIn REST Social Metadata API, writes the latest metrics and history snapshot to Supabase, updates Redis, and returns fresh data.
+
+#### `POST /api/analytics/sync-all`
+Iterates over all posts published by the user in the last 14 days and synchronizes their engagement metrics.
+
+#### `POST /api/analytics/cron-sync`
+Background cron worker endpoint (Requires `Authorization: Bearer <CRON_SECRET>`) that automatically refreshes stale post metrics across all creator accounts every 6 hours.
 
 ---
 
-## 6. Security, Encryption & Token Lifecycle
+## 7. Upstash Redis Caching Layer
 
-1. **AES-256-GCM Token Encryption**:
-   - Access tokens are encrypted using a 32-byte master key (`ENCRYPTION_KEY`) before saving into Supabase.
-   - Plaintext tokens never leave the server memory.
-2. **Race Condition Elimination**:
-   - The publishing engine claims rows with atomic SQL:
-     `UPDATE posts SET status = 'processing', updated_at = NOW() WHERE id = $1 AND status = 'pending' RETURNING *;`
-   - This ensures multiple parallel cron invocations never double-publish a post.
+To guarantee sub-5ms response times on Vercel Serverless without cold-start TCP limits, `corelink_server` integrates native `@upstash/redis` (REST API) with graceful fallback to `ioredis` (TCP) and bypass mode:
+
+* **TTLs:**
+  * `USER_PROFILE`: 900s (15 min)
+  * `POSTS_LIST`: 180s (3 min)
+  * `POST_DETAIL`: 600s (10 min)
+  * `POST_STATS`: 300s (5 min)
+  * `AI_QUOTA_ACTIVE`: 60s (1 min)
+  * `SCHEDULE_WINDOW`: 30s
+* **Response Contract:**
+  Every cached endpoint includes `"source": "REDIS"` when served from Upstash memory, or `"source": "SUPABASE"` / `"source": "SYSTEM"`.
+
+---
+
+## 8. Database Migrations & DDL Updates
+
+The complete SQL migrations are stored under `supabase/migrations/`:
+* `20240902000000_initial_schema.sql`: Initial `profiles`, `posts`, and `ai_generation_logs` schema.
+* `20260906000000_post_analytics.sql`: Adds analytics columns to `posts` (`likes_count`, `comments_count`, `shares_count`, `impressions_count`, `engagement_rate`, `metrics_last_synced_at`) and creates `post_analytics_history` with Row Level Security (RLS) policies.
+

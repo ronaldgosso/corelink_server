@@ -1,3 +1,4 @@
+import { Redis as UpstashRedis } from '@upstash/redis';
 import Redis from 'ioredis';
 import { config } from '../config/env.js';
 
@@ -15,114 +16,122 @@ export const TTL = {
 
 class RedisService {
   constructor() {
+    this.type = 'none'; // 'upstash' | 'ioredis' | 'none'
     this.client = null;
-    this.isConnected = false;
     this.hasWarned = false;
     this._init();
   }
 
   _init() {
+    const upstashUrl = process.env.UPSTASH_REDIS_REST_URL || config.redis?.upstashUrl;
+    const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN || config.redis?.upstashToken;
     const redisUrl = process.env.REDIS_URL || config.redis?.url;
 
-    if (!redisUrl) {
-      if (!this.hasWarned) {
-        console.log('[REDIS] REDIS_URL not configured. Caching layer is operating in bypass mode.');
-        this.hasWarned = true;
+    // 1. Prefer native Upstash REST client (ideal for Vercel serverless / Edge functions)
+    if (upstashUrl && upstashToken) {
+      try {
+        this.client = new UpstashRedis({
+          url: upstashUrl,
+          token: upstashToken,
+        });
+        this.type = 'upstash';
+        console.log('[REDIS] Initialized native Upstash REST client.');
+        return;
+      } catch (err) {
+        console.warn(`[UPSTASH WARNING] Initialization error: ${err.message}`);
       }
-      return;
     }
 
-    try {
-      this.client = new Redis(redisUrl, {
-        maxRetriesPerRequest: 1,
-        connectTimeout: 5000,
-        enableOfflineQueue: false,
-        retryStrategy(times) {
-          if (times > 3) return null; // Stop retrying after 3 attempts to prevent log spam
-          return Math.min(times * 500, 2000);
-        },
-      });
+    // 2. Fall back to standard Redis / ioredis connection string
+    if (redisUrl) {
+      try {
+        this.client = new Redis(redisUrl, {
+          maxRetriesPerRequest: 1,
+          connectTimeout: 5000,
+          enableOfflineQueue: false,
+          tls: redisUrl.startsWith('rediss://') ? {} : undefined,
+          retryStrategy(times) {
+            if (times > 3) return null;
+            return Math.min(times * 500, 2000);
+          },
+        });
 
-      this.client.on('connect', () => {
-        this.isConnected = true;
-        console.log('[REDIS] Connected to Redis instance successfully.');
-      });
+        this.client.on('connect', () => {
+          this.type = 'ioredis';
+          console.log('[REDIS] Connected to Redis instance via TCP/TLS.');
+        });
 
-      this.client.on('error', (err) => {
-        this.isConnected = false;
-        if (!this.hasWarned) {
-          console.warn(`[REDIS WARNING] Connection error (${err.message}). Bypassing cache.`);
-          this.hasWarned = true;
-        }
-      });
+        this.client.on('error', (err) => {
+          if (!this.hasWarned) {
+            console.warn(`[REDIS WARNING] Connection error (${err.message}). Bypassing cache.`);
+            this.hasWarned = true;
+          }
+        });
+        return;
+      } catch (err) {
+        console.warn(`[REDIS INIT WARNING] Failed to initialize ioredis: ${err.message}`);
+      }
+    }
 
-      this.client.on('close', () => {
-        this.isConnected = false;
-      });
-    } catch (err) {
-      console.warn(`[REDIS INIT WARNING] Failed to initialize client: ${err.message}`);
-      this.client = null;
-      this.isConnected = false;
+    if (!this.hasWarned) {
+      console.log('[REDIS] No Upstash or REDIS_URL configured. Caching layer is operating in bypass mode.');
+      this.hasWarned = true;
     }
   }
 
-  /**
-   * Check if Redis is actively ready to receive commands
-   */
   isAvailable() {
-    return Boolean(this.client && this.isConnected);
+    if (this.type === 'upstash') return Boolean(this.client);
+    if (this.type === 'ioredis') return Boolean(this.client && this.client.status === 'ready');
+    return false;
   }
 
-  /**
-   * Diagnostic status string
-   */
   getStatus() {
-    if (!process.env.REDIS_URL && !config.redis?.url) return 'unconfigured';
-    return this.isConnected ? 'connected' : 'disconnected';
+    if (this.type === 'upstash') return 'connected (Upstash REST)';
+    if (this.type === 'ioredis') return 'connected (TCP/TLS)';
+    return 'unconfigured';
   }
 
-  /**
-   * Fetch cached JSON object
-   * @param {string} key
-   * @returns {Promise<any|null>}
-   */
   async get(key) {
     if (!this.isAvailable()) return null;
     try {
-      const data = await this.client.get(key);
-      if (!data) return null;
-      return JSON.parse(data);
-    } catch (err) {
+      if (this.type === 'upstash') {
+        const data = await this.client.get(key);
+        if (!data) return null;
+        return typeof data === 'string' ? JSON.parse(data) : data;
+      } else {
+        const data = await this.client.get(key);
+        if (!data) return null;
+        return JSON.parse(data);
+      }
+    } catch {
       return null;
     }
   }
 
-  /**
-   * Store value as JSON with explicit TTL
-   * @param {string} key
-   * @param {any} value
-   * @param {number} ttlSeconds
-   * @returns {Promise<boolean>}
-   */
   async set(key, value, ttlSeconds = TTL.POSTS_LIST) {
     if (!this.isAvailable()) return false;
     try {
-      const serialized = JSON.stringify(value);
-      if (ttlSeconds && ttlSeconds > 0) {
-        await this.client.set(key, serialized, 'EX', ttlSeconds);
+      if (this.type === 'upstash') {
+        if (ttlSeconds && ttlSeconds > 0) {
+          await this.client.set(key, value, { ex: ttlSeconds });
+        } else {
+          await this.client.set(key, value);
+        }
+        return true;
       } else {
-        await this.client.set(key, serialized);
+        const serialized = JSON.stringify(value);
+        if (ttlSeconds && ttlSeconds > 0) {
+          await this.client.set(key, serialized, 'EX', ttlSeconds);
+        } else {
+          await this.client.set(key, serialized);
+        }
+        return true;
       }
-      return true;
-    } catch (err) {
+    } catch {
       return false;
     }
   }
 
-  /**
-   * Delete specific key
-   * @param {string} key
-   */
   async del(key) {
     if (!this.isAvailable()) return false;
     try {
@@ -133,27 +142,30 @@ class RedisService {
     }
   }
 
-  /**
-   * Invalidate all keys matching pattern (using non-blocking SCAN)
-   * @param {string} pattern e.g. "cache:posts:USER_ID:*"
-   */
   async delPattern(pattern) {
     if (!this.isAvailable()) return false;
     try {
-      const stream = this.client.scanStream({
-        match: pattern,
-        count: 50,
-      });
-
-      stream.on('data', async (keys) => {
-        if (keys.length > 0) {
-          const pipeline = this.client.pipeline();
-          keys.forEach((k) => pipeline.del(k));
-          await pipeline.exec();
-        }
-      });
-
-      return true;
+      if (this.type === 'upstash') {
+        let cursor = 0;
+        do {
+          const [nextCursor, keys] = await this.client.scan(cursor, { match: pattern, count: 50 });
+          cursor = nextCursor;
+          if (keys && keys.length > 0) {
+            await this.client.del(...keys);
+          }
+        } while (cursor !== 0 && cursor !== '0');
+        return true;
+      } else {
+        const stream = this.client.scanStream({ match: pattern, count: 50 });
+        stream.on('data', async (keys) => {
+          if (keys.length > 0) {
+            const pipeline = this.client.pipeline();
+            keys.forEach((k) => pipeline.del(k));
+            await pipeline.exec();
+          }
+        });
+        return true;
+      }
     } catch {
       return false;
     }

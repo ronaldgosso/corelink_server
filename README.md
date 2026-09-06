@@ -7,33 +7,8 @@
 
 ##  System Architecture
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│                    Mobile Client App                    │
-│             (Flutter / React Native Client)             │
-└────────────────────────────┬────────────────────────────┘
-                             │ (Single Unified API /api/*)
-                             ▼
-┌─────────────────────────────────────────────────────────┐
-│              corelink_server (Vercel Node.js)           │
-│                                                         │
-│  • /api/auth/linkedin    -> OAuth code exchange & AES-256│
-│  • /api/generate         -> Mistral AI (mistral-small)   │
-│  • /api/posts            -> Supabase CRUD & schedule     │
-│  • /api/publish          -> Atomic claim, decrypt, post  │
-└───┬────────────────────────┬────────────────────────┬───┘
-    │                        │                        │
-    ▼                        ▼                        ▼
-┌─────────────────┐  ┌───────────────┐  ┌──────────────────┐
-│    Supabase     │  │  Mistral AI   │  │   LinkedIn REST  │
-│ (PostgreSQL/RLS)│  │ (mistral-small│  │    (Posts API)   │
-└────────▲────────┘  └───────────────┘  └──────────────────┘
-         │ (Polls every 10 min)
-┌────────┴───────────────────────────┐
-│      Cloudflare Worker Cron        │
-│        Trigger: */10 * * * *       │
-└────────────────────────────────────┘
-```
+<img width="1536" height="1024" alt="ChatGPT Image Sep 6, 2026, 12_49_23 PM" src="https://github.com/user-attachments/assets/4721a2c2-a0ee-4bcb-b571-803567d7ebcd" />
+
 
 ---
 

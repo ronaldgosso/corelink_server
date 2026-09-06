@@ -700,6 +700,186 @@
           ]
         }
       ]
+    },
+    {
+      "name": "6. LinkedIn Analytics & Engagement Metrics",
+      "description": "Real-time engagement metrics, reaction breakdowns, impressions, and timeline history cached in Upstash Redis (TTL: 300s).",
+      "item": [
+        {
+          "name": "6.1 Get Profile Analytics Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "Client Session JWT"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/analytics/overview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "overview"
+              ]
+            },
+            "description": "### 6.1 Profile Analytics Overview\n\nAggregates creator KPIs across all published posts (total likes, comments, shares, impressions, and average engagement rate), top 5 performing posts, and 14-day engagement timeline.\n\n**Caching**: Upstash Redis (TTL: 300s, `cache:stats:overview:{userId}`)."
+          },
+          "response": [
+            {
+              "name": "200 Success (Redis Cache Hit)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"data\": {\n    \"userId\": \"user_uuid_here\",\n    \"totalPublished\": 12,\n    \"totals\": {\n      \"likes\": 420,\n      \"comments\": 68,\n      \"shares\": 24,\n      \"impressions\": 14850,\n      \"interactions\": 512,\n      \"averageEngagementRate\": 3.45\n    },\n    \"topPosts\": [],\n    \"timeline\": [],\n    \"generatedAt\": \"2026-09-06T11:45:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "6.2 Get Single Post Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "Client Session JWT"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/analytics/posts/{{post_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "posts",
+                "{{post_id}}"
+              ]
+            },
+            "description": "### 6.2 Single Post Analytics\n\nRetrieves real-time likes, comments, impressions, engagement rate, and historical snapshots for a specific post. Supports optional `?force=true` query param to bypass cache and sync live with LinkedIn.\n\n**Caching**: Upstash Redis (TTL: 300s, `cache:stats:post:{userId}:{postId}`)."
+          },
+          "response": [
+            {
+              "name": "200 Success (Redis Cache Hit)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"data\": {\n    \"postId\": \"post_uuid_here\",\n    \"userId\": \"user_uuid_here\",\n    \"status\": \"published\",\n    \"isPublished\": true,\n    \"linkedinPostUrn\": \"urn:li:share:71234567890\",\n    \"metrics\": {\n      \"likes\": 38,\n      \"comments\": 5,\n      \"shares\": 2,\n      \"impressions\": 1120,\n      \"engagementRate\": 4.02,\n      \"reactionBreakdown\": {\n        \"LIKE\": 30,\n        \"PRAISE\": 5,\n        \"EMPATHY\": 3\n      }\n    },\n    \"metricsLastSyncedAt\": \"2026-09-06T11:30:00.000Z\",\n    \"history\": []\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "6.3 Force Live Post Analytics Sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "Client Session JWT"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/analytics/posts/{{post_id}}/sync",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "posts",
+                "{{post_id}}",
+                "sync"
+              ]
+            },
+            "description": "### 6.3 Force Live Post Analytics Sync\n\nExplicitly triggers a live fetch against LinkedIn REST Social Metadata API (`/rest/socialMetadata`), writes the latest metrics and history snapshot to Supabase, updates Redis, and returns fresh data."
+          },
+          "response": [
+            {
+              "name": "200 Synchronized",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"message\": \"Post metrics successfully synchronized with LinkedIn\",\n  \"data\": {\n    \"postId\": \"post_uuid_here\",\n    \"metrics\": {\n      \"likes\": 42,\n      \"comments\": 6,\n      \"shares\": 2,\n      \"impressions\": 1200,\n      \"engagementRate\": 4.17\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "6.4 Bulk Sync All Recent Posts Analytics",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "description": "Client Session JWT"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/analytics/sync-all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "sync-all"
+              ]
+            },
+            "description": "### 6.4 Bulk Sync All Recent Posts\n\nIterates over all posts published by the user in the last 14 days, syncs metrics with LinkedIn, invalidates overview cache, and returns sync statistics."
+          },
+          "response": [
+            {
+              "name": "200 Bulk Sync Completed",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"message\": \"Bulk analytics synchronization completed\",\n  \"data\": {\n    \"totalFound\": 5,\n    \"synced\": 5,\n    \"failed\": 0\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "6.5 Background Cron Analytics Sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cron_secret}}",
+                "description": "Cloudflare Worker Shared Secret"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/analytics/cron-sync?batch_limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "cron-sync"
+              ],
+              "query": [
+                {
+                  "key": "batch_limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "### 6.5 Background Cron Analytics Sync\n\nInvoked periodically (every 6 hours) by the Cloudflare Worker Cron Dispatcher to refresh stale post metrics across all accounts."
+          },
+          "response": [
+            {
+              "name": "200 Cron Processed",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"timestamp\": \"2026-09-06T11:45:00.000Z\",\n  \"totalClaimed\": 8,\n  \"synced\": 8,\n  \"failed\": 0,\n  \"details\": []\n}"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

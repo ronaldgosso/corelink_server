@@ -1,9 +1,22 @@
 import { LinkedInService } from '../services/linkedin.service.js';
+import { redisService, TTL } from '../services/redis.service.js';
 
 // In-memory tracker for the most recent Cloudflare Worker / Cron dispatch
 let lastWorkerRunAt = null;
 
-export const getScheduleWindow = (req, res) => {
+export const getScheduleWindow = async (req, res) => {
+  const tzOffset = req.headers['x-timezone-offset'] ? parseInt(req.headers['x-timezone-offset'], 10) : null;
+  const cacheKey = `cache:schedule_window:${tzOffset !== null ? tzOffset : 'utc'}`;
+
+  // 1. Check Redis cache
+  const cached = await redisService.get(cacheKey);
+  if (cached) {
+    return res.status(200).json({
+      ...cached,
+      source: 'REDIS',
+    });
+  }
+
   const now = new Date();
   const cadenceMinutes = 10;
 
@@ -24,11 +37,9 @@ export const getScheduleWindow = (req, res) => {
   // Suggested scheduled time gives the user at least 5 minutes buffer
   let suggestedScheduledAt = new Date(nextDispatchWindow);
   if (suggestedScheduledAt.getTime() - now.getTime() < 3 * 60 * 1000) {
-    // If less than 3 minutes away from the immediate next window, suggest the subsequent window
     suggestedScheduledAt = new Date(suggestedScheduledAt.getTime() + cadenceMinutes * 60 * 1000);
   }
 
-  const tzOffset = req.headers['x-timezone-offset'] ? parseInt(req.headers['x-timezone-offset'], 10) : null;
   let localNextFormatted = null;
   let localSuggestedFormatted = null;
 
@@ -39,7 +50,7 @@ export const getScheduleWindow = (req, res) => {
     localSuggestedFormatted = `${String(localSugg.getUTCHours()).padStart(2, '0')}:${String(localSugg.getUTCMinutes()).padStart(2, '0')}`;
   }
 
-  return res.status(200).json({
+  const result = {
     success: true,
     server_time: now.toISOString(),
     last_worker_run: lastWorkerRunAt,
@@ -48,6 +59,14 @@ export const getScheduleWindow = (req, res) => {
     suggested_scheduled_at: suggestedScheduledAt.toISOString(),
     local_next_window: localNextFormatted,
     local_suggested_window: localSuggestedFormatted,
+  };
+
+  // Cache for 30 seconds
+  await redisService.set(cacheKey, result, TTL.SCHEDULE_WINDOW);
+
+  return res.status(200).json({
+    ...result,
+    source: 'SYSTEM',
   });
 };
 
@@ -60,8 +79,14 @@ export const handlePublishPostNow = async (req, res) => {
       postId: id,
     });
 
+    // Invalidate cached post and listings
+    await redisService.del(`cache:post:${req.user.id}:${id}`);
+    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
+    await redisService.del(`cache:stats:${req.user.id}`);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       message: 'Post published successfully to LinkedIn',
       post: publishedPost,
       data: publishedPost,
@@ -77,7 +102,6 @@ export const handlePublishPostNow = async (req, res) => {
 
 export const handleCronPublishQueue = async (req, res) => {
   try {
-    // Safe reading of query or optional body
     const queryLimit = req.query?.batch_limit;
     const bodyLimit = req.body?.batch_limit;
     const batchLimit = parseInt(queryLimit || bodyLimit || '10', 10);
@@ -90,6 +114,7 @@ export const handleCronPublishQueue = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       timestamp: lastWorkerRunAt,
       cadence_minutes: 10,
       ...summary,

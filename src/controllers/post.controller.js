@@ -1,4 +1,5 @@
 import { PostService } from '../services/post.service.js';
+import { redisService, TTL } from '../services/redis.service.js';
 
 export const handleCreatePost = async (req, res) => {
   try {
@@ -45,8 +46,13 @@ export const handleCreatePost = async (req, res) => {
       status: status || 'pending',
     });
 
+    // Invalidate cached post lists & stats for this user
+    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
+    await redisService.del(`cache:stats:${req.user.id}`);
+
     return res.status(201).json({
       success: true,
+      source: 'SUPABASE',
       message: 'Post created and scheduled successfully',
       post,
       data: post,
@@ -63,13 +69,32 @@ export const handleCreatePost = async (req, res) => {
 export const handleGetPosts = async (req, res) => {
   try {
     const { status } = req.query;
+    const cacheKey = `cache:posts:${req.user.id}:${status || 'all'}`;
+
+    // 1. Try reading from Redis cache
+    const cached = await redisService.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        source: 'REDIS',
+        posts: cached,
+        data: cached,
+        count: cached.length,
+      });
+    }
+
+    // 2. Fetch from Supabase DB on cache miss
     const posts = await PostService.getPosts({
       userId: req.user.id,
       status,
     });
 
+    // 3. Store in Redis cache with explicit TTL (180 seconds / 3 minutes)
+    await redisService.set(cacheKey, posts, TTL.POSTS_LIST);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       posts,
       data: posts,
       count: posts.length,
@@ -86,13 +111,31 @@ export const handleGetPosts = async (req, res) => {
 export const handleGetPostById = async (req, res) => {
   try {
     const { id } = req.params;
+    const cacheKey = `cache:post:${req.user.id}:${id}`;
+
+    // 1. Try reading single post from Redis cache
+    const cached = await redisService.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        source: 'REDIS',
+        post: cached,
+        data: cached,
+      });
+    }
+
+    // 2. Fetch from Supabase DB on cache miss
     const post = await PostService.getPostById({
       userId: req.user.id,
       postId: id,
     });
 
+    // 3. Store in Redis cache with explicit TTL (600 seconds / 10 minutes)
+    await redisService.set(cacheKey, post, TTL.POST_DETAIL);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       post,
       data: post,
     });
@@ -136,8 +179,14 @@ export const handleUpdatePost = async (req, res) => {
       mediaAssetUrn: finalMediaAssetUrn,
     });
 
+    // Invalidate cached post and listings
+    await redisService.del(`cache:post:${req.user.id}:${id}`);
+    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
+    await redisService.del(`cache:stats:${req.user.id}`);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       message: 'Post updated successfully',
       post: updatedPost,
       data: updatedPost,
@@ -162,8 +211,14 @@ export const handleDeletePost = async (req, res) => {
       deleteFromLinkedIn,
     });
 
+    // Invalidate cached post and listings
+    await redisService.del(`cache:post:${req.user.id}:${id}`);
+    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
+    await redisService.del(`cache:stats:${req.user.id}`);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       ...result,
     });
   } catch (error) {
@@ -181,8 +236,13 @@ export const handleSyncLinkedInPosts = async (req, res) => {
       userId: req.user.id,
     });
 
+    // Invalidate cached post listings & stats since fresh LinkedIn posts were imported
+    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
+    await redisService.del(`cache:stats:${req.user.id}`);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       ...result,
     });
   } catch (error) {
@@ -196,12 +256,30 @@ export const handleSyncLinkedInPosts = async (req, res) => {
 
 export const handleGetPostStats = async (req, res) => {
   try {
+    const cacheKey = `cache:stats:${req.user.id}`;
+
+    // 1. Try reading stats from Redis cache
+    const cached = await redisService.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        source: 'REDIS',
+        stats: cached,
+        data: cached,
+      });
+    }
+
+    // 2. Fetch from Supabase DB on cache miss
     const stats = await PostService.getPostStats({
       userId: req.user.id,
     });
 
+    // 3. Store in Redis cache with explicit TTL (300 seconds / 5 minutes)
+    await redisService.set(cacheKey, stats, TTL.POST_STATS);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       stats,
       data: stats,
     });

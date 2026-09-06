@@ -48,8 +48,14 @@
             },
             "url": {
               "raw": "{{base_url}}/api/auth/linkedin",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "linkedin"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "linkedin"
+              ]
             },
             "description": "### 1.1 LinkedIn OAuth Token Exchange\n\nCalled by the mobile app after the user authorizes in the browser.\n\n**Server Execution Flow:**\n1. Exchanges `code` with LinkedIn for `access_token` and `refresh_token` using the server's private `LINKEDIN_CLIENT_SECRET`.\n2. Fetches user claims from LinkedIn OpenID `/v2/userinfo` (`sub`, `name`, `email`, `picture`).\n3. Encrypts the LinkedIn access token with **AES-256-GCM**.\n4. Upserts the user and encrypted token in Supabase `profiles` table.\n5. Generates a secure session token / JWT for the client app.\n\n**Sample Response:**\n```json\n{\n  \"success\": true,\n  \"token\": \"eyJhbGciOi...\",\n  \"user\": {\n    \"id\": \"782bbdua-uuid\",\n    \"name\": \"Jane Doe\",\n    \"email\": \"jane.doe@example.com\",\n    \"picture\": \"https://media.licdn.com/...\",\n    \"linkedinMemberId\": \"782bbdua\",\n    \"tokenExpiresAt\": \"2026-11-01T12:00:00.000Z\"\n  }\n}\n```"
           },
@@ -68,12 +74,31 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/auth/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "me"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
             },
             "description": "### 1.2 Get Current Profile\n\nRetrieves the authenticated user's profile and LinkedIn connection status from Supabase."
           },
-          "response": []
+          "response": [
+            {
+              "name": "200 Success (Redis Cache Hit)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"profile\": {\n    \"id\": \"user_uuid_here\",\n    \"linkedin_urn\": \"urn:li:person:xyz\",\n    \"name\": \"Alex Rivera\",\n    \"email\": \"alex@example.com\",\n    \"picture_url\": \"https://media.licdn.com/...\"\n  },\n  \"user\": {\n    \"id\": \"user_uuid_here\",\n    \"name\": \"Alex Rivera\"\n  }\n}"
+            },
+            {
+              "name": "200 Success (Supabase DB Query)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"profile\": {\n    \"id\": \"user_uuid_here\",\n    \"linkedin_urn\": \"urn:li:person:xyz\",\n    \"name\": \"Alex Rivera\",\n    \"email\": \"alex@example.com\"\n  }\n}"
+            }
+          ]
         },
         {
           "name": "1.3 Disconnect LinkedIn Integration",
@@ -87,8 +112,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/auth/disconnect",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "disconnect"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "disconnect"
+              ]
             },
             "description": "### 1.3 Disconnect LinkedIn\n\nRevokes the LinkedIn OAuth token and clears encrypted credentials from the user's Supabase profile."
           },
@@ -112,6 +143,12 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Timezone-Offset",
+                "value": "180",
+                "type": "text",
+                "description": "Minutes offset from UTC (e.g. 180 for GMT+3)"
               }
             ],
             "body": {
@@ -125,8 +162,13 @@
             },
             "url": {
               "raw": "{{base_url}}/api/generate",
-              "host": ["{{base_url}}"],
-              "path": ["api", "generate"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "generate"
+              ]
             },
             "description": "### 2.1 Generate Post Draft\n\nCalls Mistral AI (`mistral-small`) with optimized system prompts designed specifically for LinkedIn algorithms:\n- Attention-grabbing opening hook (lines 1–2).\n- Double line-breaks for mobile readability.\n- Actionable takeaways.\n- Curated 3–5 professional hashtags.\n\n**Sample Response:**\n```json\n{\n  \"success\": true,\n  \"draft\": {\n    \"hook\": \"Most startups spend $50/mo on idle VPS servers they don't even utilize.\",\n    \"content\": \"Most startups spend $50/mo on idle VPS servers they don't even utilize.\\n\\nHere is why we went 100% serverless for Corelink:\\n\\n1. Zero idle cost (Vercel + Supabase)\\n2. Global edge crons under 10ms CPU (Cloudflare Workers)\\n3. Infinite scale with zero ops overhead\\n\\nWhat is your preferred MVP stack in 2026?\\n\\n#Serverless #NodeJS #Startup #Cloud #WebDev\",\n    \"hashtags\": [\"#Serverless\", \"#NodeJS\", \"#Startup\", \"#Cloud\", \"#WebDev\"]\n  }\n}\n```"
           },
@@ -144,6 +186,12 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-Timezone-Offset",
+                "value": "180",
+                "type": "text",
+                "description": "Minutes offset from UTC (e.g. 180 for GMT+3)"
               }
             ],
             "body": {
@@ -157,12 +205,69 @@
             },
             "url": {
               "raw": "{{base_url}}/api/generate/optimize-hook",
-              "host": ["{{base_url}}"],
-              "path": ["api", "generate", "optimize-hook"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "generate",
+                "optimize-hook"
+              ]
             },
             "description": "### 2.2 Optimize Hook\n\nGenerates 3 high-converting alternative hooks for an existing draft."
           },
           "response": []
+        },
+        {
+          "name": "2.3 Get Daily AI Quota & Midnight Reset Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "X-Timezone-Offset",
+                "value": "180",
+                "type": "text",
+                "description": "Minutes offset from UTC (e.g. 180 for GMT+3)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/generate/quota",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "generate",
+                "quota"
+              ]
+            },
+            "description": "Retrieves the authenticated user's daily AI quota status (10 calls/day max) and local midnight reset countdown. Served via Redis cache."
+          },
+          "response": [
+            {
+              "name": "200 Success (Redis Cache Hit)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"quota\": {\n    \"limit\": 10,\n    \"used\": 2,\n    \"remaining\": 8,\n    \"resetsAt\": \"2026-09-07T00:00:00.000+03:00\",\n    \"secondsRemaining\": 47280\n  }\n}"
+            },
+            {
+              "name": "200 Success (Supabase DB Query)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"quota\": {\n    \"limit\": 10,\n    \"used\": 2,\n    \"remaining\": 8,\n    \"resetsAt\": \"2026-09-07T00:00:00.000+03:00\",\n    \"secondsRemaining\": 47280\n  }\n}"
+            },
+            {
+              "name": "429 Daily Limit Reached",
+              "status": "Too Many Requests",
+              "code": 429,
+              "body": "{\n  \"success\": false,\n  \"error\": \"Daily AI generation limit reached (10/10). Resets at midnight in your local timezone.\",\n  \"quota\": {\n    \"limit\": 10,\n    \"used\": 10,\n    \"remaining\": 0,\n    \"resetsAt\": \"2026-09-07T00:00:00.000+03:00\",\n    \"secondsRemaining\": 47280\n  }\n}"
+            }
+          ]
         }
       ]
     },
@@ -209,8 +314,13 @@
             },
             "url": {
               "raw": "{{base_url}}/api/posts",
-              "host": ["{{base_url}}"],
-              "path": ["api", "posts"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts"
+              ]
             },
             "description": "### 3.1 Create Scheduled Post\n\nSaves a new post into Supabase `posts` table.\n\n**Payload Fields:**\n- `content` (string, required): Full text of the post.\n- `scheduledAt` (ISO8601 string, required): Desired publication timestamp.\n- `status` (string): `pending` (scheduled) or `draft`.\n- `mediaUrl` (optional string): Attached image/video URL."
           },
@@ -228,8 +338,13 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/posts?status=pending&page=1&limit=20&sortBy=scheduled_at&order=asc",
-              "host": ["{{base_url}}"],
-              "path": ["api", "posts"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts"
+              ],
               "query": [
                 {
                   "key": "status",
@@ -256,7 +371,20 @@
             },
             "description": "### 3.2 List Posts\n\nQueries Supabase for the authenticated user's posts with filtering, pagination, and sorting for calendar and feed views."
           },
-          "response": []
+          "response": [
+            {
+              "name": "200 Success (Redis Cache Hit)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"count\": 2,\n  \"posts\": [\n    {\n      \"id\": \"post_1\",\n      \"content\": \"Scaling serverless systems with sub-10ms latencies...\",\n      \"scheduled_at\": \"2026-09-06T12:00:00Z\",\n      \"status\": \"pending\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "200 Success (Supabase DB Query)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"count\": 2,\n  \"posts\": []\n}"
+            }
+          ]
         },
         {
           "name": "3.3 Get Single Post by ID",
@@ -270,12 +398,31 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/posts/{{post_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "posts", "{{post_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "{{post_id}}"
+              ]
             },
             "description": "### 3.3 Get Post by ID\n\nFetches full details of a specific post including publish timestamp, error logs, and execution status."
           },
-          "response": []
+          "response": [
+            {
+              "name": "200 Success (Redis Cache Hit)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"post\": {\n    \"id\": \"post_1\",\n    \"content\": \"Sample cached post content\",\n    \"status\": \"pending\"\n  }\n}"
+            },
+            {
+              "name": "200 Success (Supabase DB Query)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"post\": {\n    \"id\": \"post_1\",\n    \"content\": \"Sample post content from DB\"\n  }\n}"
+            }
+          ]
         },
         {
           "name": "3.4 Update / Reschedule Post",
@@ -302,8 +449,14 @@
             },
             "url": {
               "raw": "{{base_url}}/api/posts/{{post_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "posts", "{{post_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "{{post_id}}"
+              ]
             },
             "description": "### 3.4 Update / Reschedule Post\n\nEdits post content or changes the scheduled execution time."
           },
@@ -321,8 +474,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/posts/{{post_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "posts", "{{post_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "{{post_id}}"
+              ]
             },
             "description": "### 3.5 Delete Post\n\nDeletes a post from Supabase and cancels scheduled execution."
           },
@@ -340,12 +499,64 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/posts/stats",
-              "host": ["{{base_url}}"],
-              "path": ["api", "posts", "stats"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "stats"
+              ]
             },
             "description": "### 3.6 Get Summary Stats\n\nReturns total counts of pending, published, and failed posts for dashboard analytics."
           },
-          "response": []
+          "response": [
+            {
+              "name": "200 Success (Redis Cache Hit)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"stats\": {\n    \"total\": 12,\n    \"pending\": 4,\n    \"published\": 7,\n    \"failed\": 1\n  }\n}"
+            },
+            {
+              "name": "200 Success (Supabase DB Query)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"stats\": {\n    \"total\": 12,\n    \"pending\": 4,\n    \"published\": 7,\n    \"failed\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "3.7 Sync Recent Published Posts from LinkedIn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/posts/sync-linkedin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "sync-linkedin"
+              ]
+            },
+            "description": "Imports recently published live posts directly from user LinkedIn profile and invalidates cached post listings."
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"syncedCount\": 5,\n  \"message\": \"Synchronized 5 posts from LinkedIn\"\n}"
+            }
+          ]
         }
       ]
     },
@@ -379,8 +590,13 @@
             },
             "url": {
               "raw": "{{base_url}}/api/publish",
-              "host": ["{{base_url}}"],
-              "path": ["api", "publish"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "publish"
+              ]
             },
             "description": "### 4.1 Process Scheduled Queue (Cron Trigger)\n\nTriggered every 10 minutes by the Cloudflare Worker Cron.\n\n**Server Execution Pipeline:**\n1. Verifies `CRON_SECRET` header.\n2. Queries Supabase using index `idx_posts_poll` for posts where `scheduled_at <= NOW()` and `status = 'pending'`.\n3. **Atomic Claiming:** Transitions status to `processing` (`UPDATE posts SET status = 'processing' WHERE id = $1 AND status = 'pending'`).\n4. For each claimed post, decrypts the user's LinkedIn access token using server-side AES-256 key.\n5. Publishes post to LinkedIn REST API (`POST https://api.linkedin.com/rest/posts`).\n6. Updates Supabase row status to `published` (or `failed` with error message in `error_log`).\n\n**Sample Response:**\n```json\n{\n  \"success\": true,\n  \"processed\": 3,\n  \"results\": [\n    {\n      \"id\": \"c89b21f0-uuid\",\n      \"status\": \"published\",\n      \"linkedinPostUrn\": \"urn:li:share:7234567890\"\n    }\n  ]\n}\n```"
           },
@@ -398,12 +614,53 @@
             ],
             "url": {
               "raw": "{{base_url}}/api/posts/{{post_id}}/publish-now",
-              "host": ["{{base_url}}"],
-              "path": ["api", "posts", "{{post_id}}", "publish-now"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "{{post_id}}",
+                "publish-now"
+              ]
             },
             "description": "### 4.2 Instant Publish\n\nAllows the user to immediately publish an existing scheduled post or draft without waiting for the cron schedule."
           },
           "response": []
+        },
+        {
+          "name": "4.3 Get Next Schedule Cadence Window",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Timezone-Offset",
+                "value": "180",
+                "type": "text",
+                "description": "Minutes offset from UTC (e.g. 180 for GMT+3)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/publish/schedule-window",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "publish",
+                "schedule-window"
+              ]
+            },
+            "description": "Calculates the next 10-minute cadence dispatch window synchronized with Cloudflare Worker triggers. Cached in Redis for 30 seconds."
+          },
+          "response": [
+            {
+              "name": "200 Success (Redis Cache Hit)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"server_time\": \"2026-09-06T10:40:00.000Z\",\n  \"last_worker_run\": \"2026-09-06T10:30:00.000Z\",\n  \"cadence_minutes\": 10,\n  \"next_dispatch_window\": \"2026-09-06T10:40:00.000Z\",\n  \"suggested_scheduled_at\": \"2026-09-06T10:50:00.000Z\",\n  \"local_next_window\": \"13:40\",\n  \"local_suggested_window\": \"13:50\"\n}"
+            }
+          ]
         }
       ]
     },
@@ -417,12 +674,30 @@
             "header": [],
             "url": {
               "raw": "{{base_url}}/api/health",
-              "host": ["{{base_url}}"],
-              "path": ["api", "health"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
             },
             "description": "### System Health Check\n\nReturns server status, uptime, and database connectivity."
           },
-          "response": []
+          "response": [
+            {
+              "name": "200 Healthy",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Corelink Server is healthy and running\",\n  \"timestamp\": \"2026-09-06T10:40:00.000Z\",\n  \"uptime\": 124.5,\n  \"source\": \"REDIS\",\n  \"redis\": \"connected\"\n}"
+            },
+            {
+              "name": "200 Healthy (Bypass / Unconfigured Redis)",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Corelink Server is healthy and running\",\n  \"timestamp\": \"2026-09-06T10:40:00.000Z\",\n  \"uptime\": 124.5,\n  \"source\": \"SYSTEM\",\n  \"redis\": \"unconfigured\"\n}"
+            }
+          ]
         }
       ]
     }

@@ -38,6 +38,13 @@ export const config = {
     redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:5000/api/auth/linkedin/callback',
     apiVersion: process.env.LINKEDIN_VERSION || '202509',
   },
+
+  // Redis Caching Configuration (Upstash REST or Standard Redis URL)
+  redis: {
+    url: process.env.REDIS_URL || '',
+    upstashUrl: process.env.UPSTASH_REDIS_REST_URL || '',
+    upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  },
 };
 
 /**

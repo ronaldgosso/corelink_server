@@ -1,5 +1,6 @@
 import { AuthService } from '../services/auth.service.js';
 import { config } from '../config/env.js';
+import { redisService, TTL } from '../services/redis.service.js';
 
 export const handleLinkedInExchange = async (req, res) => {
   try {
@@ -20,6 +21,7 @@ export const handleLinkedInExchange = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       message: 'LinkedIn authentication successful',
       token: result.token,
       profile: result.profile,
@@ -165,9 +167,28 @@ export const handleLinkedInCallback = async (req, res) => {
 
 export const handleGetMe = async (req, res) => {
   try {
+    const cacheKey = `cache:user:${req.user.id}`;
+
+    // 1. Try reading from Redis cache
+    const cached = await redisService.get(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        source: 'REDIS',
+        profile: cached,
+        user: cached,
+      });
+    }
+
+    // 2. Fetch from Supabase DB on cache miss
     const profile = await AuthService.getProfile(req.user.id);
+
+    // 3. Store in Redis cache with explicit TTL (900 seconds / 15 minutes)
+    await redisService.set(cacheKey, profile, TTL.USER_PROFILE);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       profile,
       user: profile,
     });
@@ -183,8 +204,15 @@ export const handleGetMe = async (req, res) => {
 export const handleDisconnect = async (req, res) => {
   try {
     const result = await AuthService.disconnect(req.user.id);
+
+    // Invalidate user cache and related data
+    await redisService.del(`cache:user:${req.user.id}`);
+    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
+    await redisService.del(`cache:stats:${req.user.id}`);
+
     return res.status(200).json({
       success: true,
+      source: 'SUPABASE',
       message: 'LinkedIn account disconnected successfully',
       ...result,
     });

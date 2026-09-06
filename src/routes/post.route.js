@@ -8,6 +8,10 @@ import {
   handleSyncLinkedInPosts,
   handleGetPostStats,
 } from '../controllers/post.controller.js';
+import {
+  handleGetPostAnalytics,
+  handleForceSyncPostAnalytics,
+} from '../controllers/analytics.controller.js';
 import { handlePublishPostNow, getScheduleWindow } from '../controllers/publish.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 
@@ -19,7 +23,6 @@ router.use(requireAuth);
 // Summary statistics & Schedule window (must be before /:id route)
 router.get('/stats', handleGetPostStats);
 router.get('/schedule-window', getScheduleWindow);
-
 
 // List posts & Create post
 router.get('/', handleGetPosts);
@@ -33,7 +36,12 @@ router.get('/:id', handleGetPostById);
 router.put('/:id', handleUpdatePost);
 router.delete('/:id', handleDeletePost);
 
+// Post Analytics (sub-resource)
+router.get('/:id/analytics', handleGetPostAnalytics);
+router.post('/:id/analytics/sync', handleForceSyncPostAnalytics);
+
 // Sync recent published posts from LinkedIn
 router.post('/sync-linkedin', handleSyncLinkedInPosts);
 
 export default router;
+

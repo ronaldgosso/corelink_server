@@ -556,4 +556,139 @@ export class LinkedInService {
       };
     });
   }
+
+  /**
+   * Securely decrypts and returns the active LinkedIn access token for a user profile
+   */
+  static async getUserAccessToken(userId) {
+    if (!userId) {
+      throw new Error('User ID is required to retrieve LinkedIn credentials.');
+    }
+
+    const { data: profile, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, encrypted_access_token, linkedin_member_id, token_expires_at')
+      .eq('id', userId)
+      .single();
+
+    if (error || !profile) {
+      throw new Error('User profile not found in database.');
+    }
+
+    if (!profile.encrypted_access_token || profile.encrypted_access_token === 'DISCONNECTED') {
+      throw new Error('LinkedIn account is disconnected or missing access token.');
+    }
+
+    let accessToken;
+    try {
+      accessToken = decrypt(profile.encrypted_access_token);
+    } catch (err) {
+      throw new Error(`Failed to decrypt LinkedIn credentials: ${err.message}`);
+    }
+
+    return {
+      accessToken,
+      personId: profile.linkedin_member_id,
+      tokenExpiresAt: profile.token_expires_at,
+    };
+  }
+
+  /**
+   * Fetches real-time social metrics (likes, comments, reactions, shares) for a published post
+   */
+  static async getPostSocialMetrics({ accessToken, postUrn }) {
+    if (!accessToken) {
+      throw new Error('Access token is required to fetch post social metrics.');
+    }
+    if (!postUrn) {
+      return {
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        impressions: 0,
+        engagementRate: 0,
+        reactionBreakdown: {},
+        isAvailable: false,
+      };
+    }
+
+    const apiVersion = config.linkedin.apiVersion || '202509';
+    const encodedUrn = encodeURIComponent(postUrn);
+    let likes = 0;
+    let comments = 0;
+    let shares = 0;
+    let impressions = 0;
+    const reactionBreakdown = {};
+
+    // 1. Fetch Social Metadata (Reactions + Comments)
+    try {
+      const metaResponse = await fetch(`https://api.linkedin.com/rest/socialMetadata/${encodedUrn}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'LinkedIn-Version': apiVersion,
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+      });
+
+      if (metaResponse.ok) {
+        const metaData = await metaResponse.json();
+        const reactionSummaries = metaData.reactionSummaries || {};
+
+        for (const [reactionType, summary] of Object.entries(reactionSummaries)) {
+          const count = summary.count || 0;
+          reactionBreakdown[reactionType] = count;
+          likes += count;
+        }
+
+        comments = metaData.commentsSummary?.aggregatedTotalComments || metaData.commentsSummary?.totalFirstLevelComments || 0;
+      } else {
+        const errText = await metaResponse.text();
+        console.warn(`[LINKEDIN SOCIAL METADATA] Warning (${metaResponse.status}): ${errText}`);
+      }
+    } catch (err) {
+      console.warn(`[LINKEDIN SOCIAL METADATA ERROR]: ${err.message}`);
+    }
+
+    // 2. Attempt Member / Org Share Statistics (Impressions + Reshares)
+    try {
+      const statsUrl = `https://api.linkedin.com/rest/memberShareStatistics?q=shares&shares=List(${encodedUrn})`;
+      const statsResponse = await fetch(statsUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'LinkedIn-Version': apiVersion,
+          'X-Restli-Protocol-Version': '2.0.0',
+        },
+      });
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        const element = statsData.elements?.[0]?.totalShareStatistics;
+        if (element) {
+          impressions = element.uniqueImpressionsCount || element.impressionCount || 0;
+          shares = element.shareCount || 0;
+        }
+      }
+    } catch {
+      // Gracefully silent on memberShareStatistics if restricted by partner scopes
+    }
+
+    // Calculate Engagement Rate: ((likes + comments + shares) / (impressions || totalInteractions || 1)) * 100
+    const totalInteractions = likes + comments + shares;
+    const denominator = impressions > 0 ? impressions : Math.max(totalInteractions, 1);
+    const rawRate = (totalInteractions / denominator) * 100;
+    const engagementRate = Math.min(Math.round(rawRate * 100) / 100, 100);
+
+    return {
+      likes,
+      comments,
+      shares,
+      impressions,
+      engagementRate,
+      reactionBreakdown,
+      isAvailable: true,
+    };
+  }
 }
+

@@ -10,7 +10,7 @@ const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 const supabaseKey = config.supabase.serviceRoleKey || config.supabase.anonKey;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.warn('⚠️ [SUPABASE WARNING] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not defined.');
+  console.warn('[SUPABASE WARNING] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not defined.');
 }
 
 /**

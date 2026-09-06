@@ -4,7 +4,7 @@ A lightweight, zero-idle-cost **Cloudflare Worker (JavaScript ES Module)** confi
 
 ---
 
-## 📑 Features
+## Features
 - **Cron Engine (`*/10 * * * *`)**: Executes every 10 minutes on Cloudflare's global edge network.
 - **Ultra-low CPU (<10ms)**: Hands off heavy lifting (token decryption & LinkedIn REST publishing) asynchronously to Vercel.
 - **Pure JavaScript (ES Modules)**: Lightweight setup with zero compilation or build steps.
@@ -14,7 +14,7 @@ A lightweight, zero-idle-cost **Cloudflare Worker (JavaScript ES Module)** confi
 
 ---
 
-## 📁 Directory Layout
+## Directory Layout
 
 ```text
 cloudflare-worker/
@@ -26,7 +26,7 @@ cloudflare-worker/
 
 ---
 
-## 🛠️ Setup & Deployment
+## Setup & Deployment
 
 ### 1. Install Dependencies
 ```bash
@@ -85,7 +85,7 @@ npm run tail
 
 ---
 
-## ⚙️ Configuration Options (`wrangler.toml`)
+## Configuration Options (`wrangler.toml`)
 
 You can modify behavior directly in [`wrangler.toml`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/cloudflare-worker/wrangler.toml):
 

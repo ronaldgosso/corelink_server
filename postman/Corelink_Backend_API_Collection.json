@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "9b1e2c3d-4f5a-6b7c-8d9e-0f1a2b3c4d5e",
     "name": "Corelink Backend API (Centralized BFF & Supabase Engine)",
-    "description": "# Corelink Server Centralized Backend API\n\nThis collection provides all centralized backend endpoints for the **LinkedIn AI Post Scheduler** mobile app and scheduler engine.\n\n### 🏛️ Centralized Architecture (Backend-as-a-Gateway):\nInstead of the mobile app directly hitting multiple disparate services, **`corelink_server` acts as the single source of truth** for:\n1. **Authentication & Profile State**: LinkedIn OAuth code exchange, AES-256 token encryption, and Supabase user profile management.\n2. **AI Content Generation**: Mistral AI integration (`mistral-small`) for LinkedIn posts & hook optimization.\n3. **Post & Schedule Management**: Full Supabase PostgreSQL-backed CRUD for drafts, scheduled posts, calendar views, and post stats.\n4. **Publishing Pipeline & Cron Engine**: Cloudflare Worker cron-triggered queue processing and instant publishing.\n\n### 🔧 Compatibility:\n- Fully compatible with **Postman** and **Hoppscotch** (Postman v2.1.0 schema).\n- Environment variables: `{{base_url}}`, `{{auth_token}}`, `{{cron_secret}}`, `{{post_id}}`.",
+    "description": "# Corelink Server Centralized Backend API\n\nThis collection provides all centralized backend endpoints for the **LinkedIn AI Post Scheduler** mobile app and scheduler engine.\n\n###  Centralized Architecture (Backend-as-a-Gateway):\nInstead of the mobile app directly hitting multiple disparate services, **`corelink_server` acts as the single source of truth** for:\n1. **Authentication & Profile State**: LinkedIn OAuth code exchange, AES-256 token encryption, and Supabase user profile management.\n2. **AI Content Generation**: Mistral AI integration (`mistral-small`) for LinkedIn posts & hook optimization.\n3. **Post & Schedule Management**: Full Supabase PostgreSQL-backed CRUD for drafts, scheduled posts, calendar views, and post stats.\n4. **Publishing Pipeline & Cron Engine**: Cloudflare Worker cron-triggered queue processing and instant publishing.\n\n###  Compatibility:\n- Fully compatible with **Postman** and **Hoppscotch** (Postman v2.1.0 schema).\n- Environment variables: `{{base_url}}`, `{{auth_token}}`, `{{cron_secret}}`, `{{post_id}}`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -200,7 +200,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"content\": \"Scaling LinkedIn growth with automated AI scheduling has never been cleaner. 🚀\\n\\nBuilt with Supabase, Vercel, and Cloudflare Workers.\\n\\n#AI #Automation #Tech\",\n  \"scheduledAt\": \"2026-09-05T09:00:00.000Z\",\n  \"status\": \"pending\",\n  \"mediaUrl\": null,\n  \"mediaType\": null\n}",
+              "raw": "{\n  \"content\": \"Scaling LinkedIn growth with automated AI scheduling has never been cleaner. \\n\\nBuilt with Supabase, Vercel, and Cloudflare Workers.\\n\\n#AI #Automation #Tech\",\n  \"scheduledAt\": \"2026-09-05T09:00:00.000Z\",\n  \"status\": \"pending\",\n  \"mediaUrl\": null,\n  \"mediaType\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -293,7 +293,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"content\": \"Updated content: Scaling LinkedIn growth with automated AI scheduling! 🚀\\n\\n#AI #Tech\",\n  \"scheduledAt\": \"2026-09-06T14:30:00.000Z\",\n  \"status\": \"pending\"\n}",
+              "raw": "{\n  \"content\": \"Updated content: Scaling LinkedIn growth with automated AI scheduling! \\n\\n#AI #Tech\",\n  \"scheduledAt\": \"2026-09-06T14:30:00.000Z\",\n  \"status\": \"pending\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

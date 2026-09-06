@@ -8,7 +8,7 @@ export const requireCronSecret = (req, res, next) => {
   const expectedSecret = config.security.cronSecret;
 
   if (!expectedSecret) {
-    console.error('❌ [CRON SECURITY ERROR] CRON_SECRET is not configured on the server.');
+    console.error('[CRON SECURITY ERROR] CRON_SECRET is not configured on the server.');
     return res.status(500).json({
       success: false,
       error: 'Server misconfiguration: CRON_SECRET is required.',

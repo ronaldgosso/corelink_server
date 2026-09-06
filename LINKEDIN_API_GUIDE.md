@@ -4,7 +4,7 @@ This guide provides a comprehensive developer reference for integrating the **Si
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 1. [Supported Products & Scopes](#supported-products--scopes)
 2. [Importing the Collection (Postman & Hoppscotch)](#importing-the-collection-postman--hoppscotch)
 3. [Environment Variables Reference](#environment-variables-reference)
@@ -33,14 +33,14 @@ From your [LinkedIn Developer Portal](https://www.linkedin.com/developers/apps/2
 
 The collection is provided in **Postman v2.1.0 schema**, making it 100% compatible with both Postman and Hoppscotch.
 
-### 📥 Files
+### Files
 - **Collection File:** [`postman/LinkedIn_API_Collection.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_API_Collection.json)
 - **Environment File:** [`postman/LinkedIn_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/LinkedIn_Environment.json)
 
 ---
 
 ### In Postman:
-1. Open **Postman** ➔ Click **Import** (top left).
+1. Open **Postman** -> Click **Import** (top left).
 2. Drag and drop both `LinkedIn_API_Collection.json` and `LinkedIn_Environment.json`.
 3. In the top right environment dropdown, select **LinkedIn API - Environment**.
 4. Test scripts in the collection will **automatically extract and store** tokens, `person_id`, and media URNs as you run requests sequentially!
@@ -49,8 +49,8 @@ The collection is provided in **Postman v2.1.0 schema**, making it 100% compatib
 
 ### In Hoppscotch:
 1. Open [Hoppscotch](https://hoppscotch.io/).
-2. Navigate to **Collections** (left sidebar) ➔ Click **Import** ➔ Select **Postman Collection (v2.1)** ➔ Choose `postman/LinkedIn_API_Collection.json`.
-3. Navigate to **Environments** (left sidebar) ➔ Click **Import** ➔ Choose `postman/LinkedIn_Environment.json`.
+2. Navigate to **Collections** (left sidebar) -> Click **Import** -> Select **Postman Collection (v2.1)** -> Choose `postman/LinkedIn_API_Collection.json`.
+3. Navigate to **Environments** (left sidebar) -> Click **Import** -> Choose `postman/LinkedIn_Environment.json`.
 4. Set **LinkedIn API - Environment** as your active environment.
 
 ---
@@ -65,18 +65,18 @@ The collection is provided in **Postman v2.1.0 schema**, making it 100% compatib
 | `{{state}}` | Random string protecting against CSRF | Preset |
 | `{{linkedin_version}}` | LinkedIn API REST version in `YYYYMM` format (Default: `202401`) | Preset |
 | `{{auth_code}}` | Temporary code from browser redirect | Manual input |
-| `{{access_token}}` | Bearer token used for all REST requests | ✅ Auto-set by `1.2` |
-| `{{refresh_token}}` | Token used to refresh access tokens | ✅ Auto-set by `1.2` |
-| `{{person_id}}` | LinkedIn Member ID (`sub` claim) | ✅ Auto-set by `2.1` |
-| `{{person_urn}}` | Full author URN (`urn:li:person:{id}`) | ✅ Auto-set by `2.1` |
+| `{{access_token}}` | Bearer token used for all REST requests |  Auto-set by `1.2` |
+| `{{refresh_token}}` | Token used to refresh access tokens |  Auto-set by `1.2` |
+| `{{person_id}}` | LinkedIn Member ID (`sub` claim) |  Auto-set by `2.1` |
+| `{{person_urn}}` | Full author URN (`urn:li:person:{id}`) |  Auto-set by `2.1` |
 | `{{organization_id}}` | Numeric ID of your Company/Organization page | Manual input |
-| `{{image_upload_url}}` | Temporary signed CDN URL for image upload | ✅ Auto-set by `4.1` |
-| `{{image_asset_urn}}` | Image URN (`urn:li:image:...`) | ✅ Auto-set by `4.1` |
-| `{{video_upload_url}}` | Temporary signed CDN URL for video upload | ✅ Auto-set by `4.4` |
-| `{{video_asset_urn}}` | Video URN (`urn:li:video:...`) | ✅ Auto-set by `4.4` |
-| `{{document_upload_url}}`| Signed CDN URL for PDF slide deck upload | ✅ Auto-set by `4.8` |
-| `{{document_asset_urn}}` | Document URN (`urn:li:document:...`) | ✅ Auto-set by `4.8` |
-| `{{last_post_urn}}` | URN of the most recently published post | ✅ Auto-set by `3.1` |
+| `{{image_upload_url}}` | Temporary signed CDN URL for image upload |  Auto-set by `4.1` |
+| `{{image_asset_urn}}` | Image URN (`urn:li:image:...`) |  Auto-set by `4.1` |
+| `{{video_upload_url}}` | Temporary signed CDN URL for video upload |  Auto-set by `4.4` |
+| `{{video_asset_urn}}` | Video URN (`urn:li:video:...`) |  Auto-set by `4.4` |
+| `{{document_upload_url}}`| Signed CDN URL for PDF slide deck upload |  Auto-set by `4.8` |
+| `{{document_asset_urn}}` | Document URN (`urn:li:document:...`) |  Auto-set by `4.8` |
+| `{{last_post_urn}}` | URN of the most recently published post |  Auto-set by `3.1` |
 
 ---
 
@@ -162,7 +162,7 @@ Content-Type: application/json
 ```json
 {
   "author": "urn:li:person:{{person_id}}",
-  "commentary": "Excited to launch our new product! 🚀 #LinkedInAPI #Tech",
+  "commentary": "Excited to launch our new product! #LinkedInAPI #Tech",
   "visibility": "PUBLIC",
   "distribution": {
     "feedDistribution": "MAIN_FEED",
@@ -205,10 +205,10 @@ Content-Type: application/json
 Media uploads on LinkedIn follow an asynchronous 3-step protocol:
 
 ```text
-Step 1: Initialize Upload ➔ Step 2: Upload Binary to CDN ➔ Step 3: Publish Post with Asset URN
+Step 1: Initialize Upload -> Step 2: Upload Binary to CDN -> Step 3: Publish Post with Asset URN
 ```
 
-### 🖼️ Image Upload Protocol
+###  Image Upload Protocol
 1. **Initialize:** `POST https://api.linkedin.com/rest/images?action=initializeUpload`
    ```json
    {
@@ -238,7 +238,7 @@ Step 1: Initialize Upload ➔ Step 2: Upload Binary to CDN ➔ Step 3: Publish P
 
 ---
 
-### 🎥 Video Upload Protocol
+###  Video Upload Protocol
 1. **Initialize:** `POST https://api.linkedin.com/rest/videos?action=initializeUpload`
    ```json
    {
@@ -264,7 +264,7 @@ Step 1: Initialize Upload ➔ Step 2: Upload Binary to CDN ➔ Step 3: Publish P
 
 ---
 
-### 📄 Document (PDF Carousel) Upload Protocol
+###  Document (PDF Carousel) Upload Protocol
 1. **Initialize:** `POST https://api.linkedin.com/rest/documents?action=initializeUpload`
 2. **Upload Binary:** `PUT {{document_upload_url}}` with `Content-Type: application/pdf`.
 3. **Publish Post:** `POST https://api.linkedin.com/rest/posts` referencing `{{document_asset_urn}}`.
@@ -299,7 +299,7 @@ To post on behalf of a company page:
 
 ---
 
-## 📚 Official LinkedIn Resources
+##  Official LinkedIn Resources
 - [LinkedIn REST Posts API Documentation](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api)
 - [Sign In with LinkedIn (OIDC) Documentation](https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/sign-in-with-linkedin-v2)
 - [Images & Media Upload API Guide](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/images-api)

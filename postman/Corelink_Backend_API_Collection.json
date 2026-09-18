@@ -11,6 +11,107 @@
       "description": "Endpoints managing LinkedIn OAuth login, token encryption, user profile upserts in Supabase, and session state.",
       "item": [
         {
+          "name": "1.0A Get Web OAuth Authorization URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/linkedin/url?return_to=http://localhost:5173/auth/callback",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "linkedin",
+                "url"
+              ],
+              "query": [
+                {
+                  "key": "return_to",
+                  "value": "http://localhost:5173/auth/callback"
+                }
+              ]
+            },
+            "description": "Generates preconfigured LinkedIn OAuth 2.0 URL for React web apps with scopes & return_to state."
+          },
+          "response": []
+        },
+        {
+          "name": "1.0B Direct LinkedIn Web Login Redirect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/linkedin/login?return_to=http://localhost:5173/dashboard",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "linkedin",
+                "login"
+              ],
+              "query": [
+                {
+                  "key": "return_to",
+                  "value": "http://localhost:5173/dashboard"
+                }
+              ]
+            },
+            "description": "Issues direct 302 redirect to LinkedIn OAuth for web applications."
+          },
+          "response": []
+        },
+        {
+          "name": "1.0C Developer Quick Session Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) pm.environment.set(\"auth_token\", jsonData.token);",
+                  "if (jsonData.user && jsonData.user.id) pm.environment.set(\"user_id\", jsonData.user.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"React Web Developer\",\n  \"email\": \"developer@corelink.app\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/dev-login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "dev-login"
+              ]
+            },
+            "description": "Generates a valid 30-day session token instantly for local web development & testing."
+          },
+          "response": []
+        },
+        {
           "name": "1.1 LinkedIn OAuth Callback & Token Exchange",
           "event": [
             {

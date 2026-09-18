@@ -36,12 +36,118 @@ export const handleLinkedInExchange = async (req, res) => {
   }
 };
 
+/**
+ * Helper to construct the LinkedIn OAuth 2.0 Authorization URL
+ */
+export const buildLinkedInAuthUrl = ({ clientId, redirectUri, state, scope }) => {
+  const finalClientId = clientId || config.linkedin.clientId || '77wtiyb9nrkwzr';
+  const finalScope = scope || 'openid profile email w_member_social';
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: finalClientId,
+    redirect_uri: redirectUri,
+    scope: finalScope,
+  });
+  if (state) params.set('state', typeof state === 'object' ? JSON.stringify(state) : state);
+  return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+};
+
+/**
+ * GET /api/auth/linkedin/url
+ * Returns preconfigured LinkedIn OAuth 2.0 authorization URL for React web apps
+ */
+export const handleGetLinkedInAuthUrl = (req, res) => {
+  const host = req.get('host') || 'corelink-server.vercel.app';
+  const protocol = req.protocol || (host.includes('localhost') ? 'http' : 'https');
+  const defaultCallback = `${protocol}://${host}/api/auth/linkedin/callback`;
+
+  const { redirect_uri, redirectUri, return_to, returnTo, state, scope } = req.query;
+  const targetCallback = redirect_uri || redirectUri || defaultCallback;
+
+  let statePayload = state || '';
+  if (return_to || returnTo) {
+    statePayload = JSON.stringify({
+      return_to: return_to || returnTo,
+      custom_state: state || null,
+    });
+  }
+
+  const url = buildLinkedInAuthUrl({
+    clientId: config.linkedin.clientId,
+    redirectUri: targetCallback,
+    state: statePayload,
+    scope,
+  });
+
+  return res.status(200).json({
+    success: true,
+    url,
+    redirectUri: targetCallback,
+  });
+};
+
+/**
+ * GET /api/auth/linkedin/login
+ * Directly initiates LinkedIn OAuth and redirects browser to LinkedIn auth screen
+ */
+export const handleLinkedInLoginRedirect = (req, res) => {
+  const host = req.get('host') || 'corelink-server.vercel.app';
+  const protocol = req.protocol || (host.includes('localhost') ? 'http' : 'https');
+  const defaultCallback = `${protocol}://${host}/api/auth/linkedin/callback`;
+
+  const { redirect_uri, redirectUri, return_to, returnTo, state, scope } = req.query;
+  const targetCallback = redirect_uri || redirectUri || defaultCallback;
+
+  let statePayload = state || '';
+  if (return_to || returnTo) {
+    statePayload = JSON.stringify({
+      return_to: return_to || returnTo,
+      custom_state: state || null,
+    });
+  }
+
+  const url = buildLinkedInAuthUrl({
+    clientId: config.linkedin.clientId,
+    redirectUri: targetCallback,
+    state: statePayload,
+    scope,
+  });
+
+  return res.redirect(url);
+};
+
+/**
+ * POST /api/auth/dev-login
+ * Developer utility to generate an authenticated session token for React web testing
+ */
+export const handleDevLogin = async (req, res) => {
+  try {
+    const { email, name, userId } = req.body || {};
+    const result = await AuthService.devLogin({ email, name, userId });
+
+    return res.status(200).json({
+      success: true,
+      source: 'DEV_SESSION',
+      message: 'Developer test session generated successfully',
+      token: result.token,
+      profile: result.profile,
+      user: result.profile,
+    });
+  } catch (error) {
+    console.error('Dev login error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to generate developer session',
+    });
+  }
+};
+
 export const handleLinkedInCallback = async (req, res) => {
   const clientId = config.linkedin.clientId || '77wtiyb9nrkwzr';
   const retryAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=https%3A%2F%2Fcorelink-server.vercel.app%2Fapi%2Fauth%2Flinkedin%2Fcallback&scope=openid%20profile%20email%20w_member_social`;
 
   try {
-    const { code, error, error_description } = req.query;
+    const { code, error, error_description, state } = req.query;
 
     if (error) {
       return res.status(400).send(`
@@ -105,6 +211,26 @@ export const handleLinkedInCallback = async (req, res) => {
       redirectUri,
     });
 
+    // Check if state requested a web return URL (e.g. React app on localhost:5173 or production domain)
+    let returnToUrl = null;
+    if (state) {
+      try {
+        const parsedState = JSON.parse(state);
+        if (parsedState?.return_to) {
+          returnToUrl = parsedState.return_to;
+        }
+      } catch {
+        if (state.startsWith('http://') || state.startsWith('https://')) {
+          returnToUrl = state;
+        }
+      }
+    }
+
+    if (returnToUrl) {
+      const separator = returnToUrl.includes('?') ? '&' : '?';
+      return res.redirect(`${returnToUrl}${separator}token=${encodeURIComponent(result.token)}&user_id=${encodeURIComponent(result.profile.id)}`);
+    }
+
     const deepLinkUrl = `corelink://auth?token=${encodeURIComponent(result.token)}`;
 
     return res.status(200).send(`
@@ -114,25 +240,55 @@ export const handleLinkedInCallback = async (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>CoreLink - Authentication Successful</title>
         <style>
-          body { background: #0B0F1A; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-          .card { background: #131B2E; border: 1px solid rgba(0, 196, 255, 0.2); border-radius: 20px; padding: 36px 24px; text-align: center; max-width: 440px; box-shadow: 0 10px 40px rgba(0, 196, 255, 0.1); }
-          .icon { width: 64px; height: 64px; background: linear-gradient(135deg, #00C4FF 0%, #7928CA 100%); border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 20px; }
+          body { background: #0B0F1A; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+          .card { background: #131B2E; border: 1px solid rgba(0, 196, 255, 0.25); border-radius: 20px; padding: 36px 28px; text-align: center; max-width: 480px; width: 100%; box-shadow: 0 10px 40px rgba(0, 196, 255, 0.12); }
+          .icon { width: 64px; height: 64px; background: linear-gradient(135deg, #00C4FF 0%, #7928CA 100%); border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 20px; color: #fff; }
           h2 { color: #FFFFFF; font-size: 22px; margin: 0 0 8px 0; }
           p { color: #8C9BAE; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0; }
-          .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #00C4FF; color: #0B0F1A; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 20px; border-radius: 12px; margin-bottom: 12px; }
+          .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #00C4FF; color: #0B0F1A; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 20px; border-radius: 12px; margin-bottom: 12px; transition: opacity 0.2s; border: none; cursor: pointer; }
+          .btn:hover { opacity: 0.9; }
+          .btn-secondary { background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); }
+          .dev-box { margin-top: 20px; text-align: left; background: #090D16; border-radius: 12px; padding: 14px; border: 1px solid rgba(255,255,255,0.06); font-family: monospace; font-size: 12px; }
+          .token-text { word-break: break-all; color: #00C4FF; margin-top: 6px; user-select: all; }
         </style>
         <script>
-          window.onload = function() {
-            window.location.href = "${deepLinkUrl}";
-          };
+          // If launched inside a popup by a React web app, transmit credentials to parent window
+          if (window.opener) {
+            try {
+              window.opener.postMessage({
+                type: 'CORELINK_AUTH_SUCCESS',
+                token: "${result.token}",
+                profile: ${JSON.stringify(result.profile)}
+              }, '*');
+              setTimeout(function() {
+                window.close();
+              }, 1200);
+            } catch (err) {
+              console.warn('postMessage error:', err);
+            }
+          }
+
+          // Also trigger mobile deep link
+          window.location.href = "${deepLinkUrl}";
+
+          function copyToken() {
+            navigator.clipboard.writeText("${result.token}").then(function() {
+              alert('CoreLink JWT Token copied to clipboard!');
+            });
+          }
         </script>
       </head>
       <body>
         <div class="card">
-          <div class="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          <div class="icon">✓</div>
           <h2>Welcome, ${result.profile.name}!</h2>
-          <p>Your LinkedIn account is securely connected. Redirecting you to the CoreLink mobile app...</p>
-          <a href="${deepLinkUrl}" class="btn">Open CoreLink App</a>
+          <p>Your LinkedIn account is securely connected. Redirecting you to CoreLink...</p>
+          <a href="${deepLinkUrl}" class="btn">Open CoreLink Mobile App</a>
+          <button onclick="copyToken()" class="btn btn-secondary">Copy JWT Token (For Web / Dev)</button>
+          <div class="dev-box">
+            <div style="color: #8C9BAE; font-size: 11px;">JWT SESSION TOKEN (30-DAY TTL):</div>
+            <div class="token-text">${result.token.substring(0, 48)}...</div>
+          </div>
         </div>
       </body>
       </html>

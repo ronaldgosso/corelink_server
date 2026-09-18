@@ -33,14 +33,14 @@ By routing all actions through `corelink_server`, any schema updates, business r
 │                                                         │
 │  • Validation & Auth Middleware                         │
 │  • AES-256 Token Encryption/Decryption                  │
-│  • Mistral AI Prompt Engineering                        │
+│  • CoreLink AI Prompt Engineering                        │
 │  • Business Logic & Idempotent Post Claiming            │
 └───┬────────────────────────┬────────────────────────┬───┘
     │                        │                        │
     ▼                        ▼                        ▼
 ┌─────────────────┐  ┌───────────────┐  ┌──────────────────┐
-│    Supabase     │  │  Mistral AI   │  │   LinkedIn REST  │
-│ (PostgreSQL/RLS)│  │ (mistral-small│  │     (Posts API)  │
+│    Supabase     │  │  CoreLink AI  │  │   LinkedIn REST  │
+│ (PostgreSQL/RLS)│  │    (Engine)   │  │     (Posts API)  │
 └─────────────────┘  └───────────────┘  └──────────────────┘
 ```
 
@@ -111,6 +111,48 @@ CREATE POLICY "Users can delete own posts" ON posts FOR DELETE USING (auth.uid()
 
 ### 1. Authentication & Profiles (`/api/auth`)
 
+#### `GET /api/auth/linkedin/url`
+Generates the preconfigured LinkedIn OAuth 2.0 authorization URL for web apps (React, Next.js, Vue). Keeps client credentials and scopes centralized on the server.
+* **Query Parameters:**
+  * `redirect_uri` *(optional)*: OAuth callback URI (defaults to server callback).
+  * `return_to` *(optional)*: React app URL to redirect to upon login completion (e.g., `http://localhost:5173/auth/callback` or `https://app.corelink.com/dashboard`).
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "url": "https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=...&redirect_uri=...&scope=openid%20profile%20email%20w_member_social&state=...",
+    "redirectUri": "http://localhost:5000/api/auth/linkedin/callback"
+  }
+  ```
+
+#### `GET /api/auth/linkedin/login`
+Direct 302 redirect to LinkedIn OAuth authorization screen. Allows a React developer to link directly:
+`<a href="https://corelink-server.vercel.app/api/auth/linkedin/login?return_to=http://localhost:5173/dashboard">Login with LinkedIn</a>`.
+
+#### `POST /api/auth/dev-login`
+Developer session generator for local web application development. Generates a valid 30-day JWT session token instantly without requiring LinkedIn OAuth execution each time.
+* **Body:**
+  ```json
+  {
+    "name": "React Developer",
+    "email": "developer@corelink.app"
+  }
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "source": "DEV_SESSION",
+    "token": "eyJhbGciOi...",
+    "profile": {
+      "id": "...",
+      "name": "React Developer",
+      "email": "developer@corelink.app",
+      "connected": true
+    }
+  }
+  ```
+
 #### `POST /api/auth/linkedin`
 Exchanges the LinkedIn authorization `code`, encrypts the token with AES-256, upserts the Supabase profile, and returns a client session token.
 * **Body:**
@@ -143,7 +185,7 @@ Exchanges the LinkedIn authorization `code`, encrypts the token with AES-256, up
 ### 2. AI Post Generation (`/api/generate`)
 
 #### `POST /api/generate`
-Generates an algorithmic-friendly LinkedIn post using Mistral AI (`mistral-small`).
+Generates an algorithmic-friendly LinkedIn post using the proprietary CoreLink AI Engine.
 * **Headers:** `Authorization: Bearer <auth_token>`
 * **Body:**
   ```json

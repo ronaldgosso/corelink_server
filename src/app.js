@@ -31,6 +31,9 @@ app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Static public assets (brand logo, favicon)
+app.use(express.static('public'));
+
 // Root welcome route
 app.get('/', (req, res) => {
   res.status(200).json({

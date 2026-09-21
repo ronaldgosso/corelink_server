@@ -238,11 +238,12 @@ export const handleLinkedInCallback = async (req, res) => {
       <html>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" type="image/png" href="/favicon.png">
         <title>CoreLink - Authentication Successful</title>
         <style>
           body { background: #0B0F1A; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
           .card { background: #131B2E; border: 1px solid rgba(0, 196, 255, 0.25); border-radius: 20px; padding: 36px 28px; text-align: center; max-width: 480px; width: 100%; box-shadow: 0 10px 40px rgba(0, 196, 255, 0.12); }
-          .icon { width: 64px; height: 64px; background: linear-gradient(135deg, #00C4FF 0%, #7928CA 100%); border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 20px; color: #fff; }
+          .logo-img { width: 72px; height: 72px; border-radius: 18px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0, 196, 255, 0.35); }
           h2 { color: #FFFFFF; font-size: 22px; margin: 0 0 8px 0; }
           p { color: #8C9BAE; font-size: 14px; line-height: 1.6; margin: 0 0 24px 0; }
           .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #00C4FF; color: #0B0F1A; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 20px; border-radius: 12px; margin-bottom: 12px; transition: opacity 0.2s; border: none; cursor: pointer; }
@@ -280,7 +281,7 @@ export const handleLinkedInCallback = async (req, res) => {
       </head>
       <body>
         <div class="card">
-          <div class="icon">✓</div>
+          <img src="/favicon.png" class="logo-img" alt="CoreLink Logo" />
           <h2>Welcome, ${result.profile.name}!</h2>
           <p>Your LinkedIn account is securely connected. Redirecting you to CoreLink...</p>
           <a href="${deepLinkUrl}" class="btn">Open CoreLink Mobile App</a>

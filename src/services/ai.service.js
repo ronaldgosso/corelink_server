@@ -116,7 +116,7 @@ Respond strictly in valid JSON format:
       generated_content: generatedText,
       hook_variations: hookVariations,
       hashtags,
-      model,
+      model: 'CoreLink AI Engine',
     };
   }
 

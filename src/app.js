@@ -14,11 +14,13 @@ app.set('trust proxy', 1);
 // Security HTTP headers
 app.use(helmet());
 
-// CORS configuration
+// CORS configuration - supports React web apps (localhost & production)
 app.use(
   cors({
-    origin: config.corsOrigin === '*' ? '*' : config.corsOrigin.split(','),
+    origin: config.corsOrigin === '*' ? true : config.corsOrigin.split(',').map((s) => s.trim()),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   })
 );
 
@@ -28,6 +30,9 @@ app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));
 // Body parser (50mb limit to support image & video uploads)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Static public assets (brand logo, favicon)
+app.use(express.static('public'));
 
 // Root welcome route
 app.get('/', (req, res) => {

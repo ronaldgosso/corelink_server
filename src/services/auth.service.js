@@ -241,4 +241,105 @@ export class AuthService {
 
     return { success: true };
   }
+
+  /**
+   * Generates a developer/test session for local React web app testing.
+   * Attaches to an existing profile in DB or creates a dedicated dev profile.
+   */
+  static async devLogin({ userId = null, email = null } = {}) {
+    let targetProfile = null;
+
+    // 1. If explicit userId provided, fetch it
+    if (userId) {
+      const { data } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      targetProfile = data;
+    }
+
+    // 2. If explicit email provided, fetch it
+    if (!targetProfile && email) {
+      const { data } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+      targetProfile = data;
+    }
+
+    // 3. Otherwise, use the latest profile in the database
+    if (!targetProfile) {
+      const { data } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      targetProfile = data;
+    }
+
+    // 4. If no profiles exist, create a developer test profile
+    if (!targetProfile) {
+      const devUserId = '00000000-0000-0000-0000-000000000001';
+      const devMemberId = 'dev_corelink_test_user';
+      const now = new Date();
+      const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { data: inserted, error } = await supabaseAdmin
+        .from('profiles')
+        .upsert({
+          id: devUserId,
+          linkedin_member_id: devMemberId,
+          name: 'CoreLink Web Developer',
+          email: 'developer@corelink.app',
+          picture_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
+          encrypted_access_token: encrypt('mock_access_token_for_dev_mode'),
+          token_expires_at: expiresAt,
+          updated_at: now.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (!error && inserted) {
+        targetProfile = inserted;
+      } else {
+        targetProfile = {
+          id: devUserId,
+          linkedin_member_id: devMemberId,
+          name: 'CoreLink Web Developer',
+          email: 'developer@corelink.app',
+          picture_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop',
+          token_expires_at: expiresAt,
+        };
+      }
+    }
+
+    // 5. Generate signed JWT session token
+    const jwtPayload = {
+      userId: targetProfile.id,
+      linkedinMemberId: targetProfile.linkedin_member_id,
+      name: targetProfile.name,
+      email: targetProfile.email,
+      isDev: true,
+    };
+
+    const token = jwt.sign(jwtPayload, config.security.jwtSecret, {
+      expiresIn: '30d',
+    });
+
+    return {
+      token,
+      profile: {
+        id: targetProfile.id,
+        name: targetProfile.name,
+        email: targetProfile.email,
+        pictureUrl: targetProfile.picture_url,
+        linkedinMemberId: targetProfile.linkedin_member_id,
+        tokenExpiresAt: targetProfile.token_expires_at,
+        connected: true,
+      },
+    };
+  }
 }

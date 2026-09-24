@@ -1,8 +1,8 @@
-import { AuthService } from '../services/auth.service.js';
-import { config } from '../config/env.js';
-import { redisService, TTL } from '../services/redis.service.js';
+import { AuthService } from "../services/auth.service.js";
+import { config } from "../config/env.js";
+import { redisService, TTL } from "../services/redis.service.js";
 
-export const handleLinkedInExchange = async (req, res) => {
+export const handleLinkedInExchangeJSON = async (req, res) => {
   try {
     const { code, redirectUri, redirect_uri } = req.body;
     const finalRedirectUri = redirectUri || redirect_uri;
@@ -10,7 +10,8 @@ export const handleLinkedInExchange = async (req, res) => {
     if (!code) {
       return res.status(400).json({
         success: false,
-        error: 'Authorization code is required in request body (e.g. { "code": "..." }).',
+        error:
+          'Authorization code is required in request body (e.g. { "code": "..." }).',
       });
     }
 
@@ -21,23 +22,23 @@ export const handleLinkedInExchange = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      source: 'SUPABASE',
-      message: 'LinkedIn authentication successful',
+      source: "SUPABASE",
+      message: "LinkedIn authentication successful",
       token: result.token,
       profile: result.profile,
       user: result.profile,
     });
   } catch (error) {
-    console.error('LinkedIn exchange error:', error);
+    console.error("LinkedIn exchange error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'LinkedIn authentication failed',
+      error: error.message || "LinkedIn authentication failed",
     });
   }
 };
 
-export const handleLinkedInCallback = async (req, res) => {
-  const clientId = config.linkedin.clientId || '77wtiyb9nrkwzr';
+export const handleMobileLinkedInDeepLinkCallback = async (req, res) => {
+  const clientId = config.linkedin.clientId || "77wtiyb9nrkwzr";
   const retryAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=https%3A%2F%2Fcorelink-server.vercel.app%2Fapi%2Fauth%2Flinkedin%2Fcallback&scope=openid%20profile%20email%20w_member_social`;
 
   try {
@@ -61,7 +62,7 @@ export const handleLinkedInCallback = async (req, res) => {
         <body>
           <div class="card">
             <h2>Authentication Cancelled</h2>
-            <p>${error_description || error || 'You cancelled the LinkedIn authorization request.'}</p>
+            <p>${error_description || error || "You cancelled the LinkedIn authorization request."}</p>
             <a href="${retryAuthUrl}" class="btn">Try Signing In Again</a>
           </div>
         </body>
@@ -94,8 +95,8 @@ export const handleLinkedInCallback = async (req, res) => {
     }
 
     // Determine canonical redirect URI matching what was sent in the auth URL
-    const host = req.get('host') || 'corelink-server.vercel.app';
-    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const host = req.get("host") || "corelink-server.vercel.app";
+    const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
     const redirectUri = isLocal
       ? `http://${host}/api/auth/linkedin/callback`
       : `https://${host}/api/auth/linkedin/callback`;
@@ -138,7 +139,7 @@ export const handleLinkedInCallback = async (req, res) => {
       </html>
     `);
   } catch (error) {
-    console.error('LinkedIn callback error:', error);
+    console.error("LinkedIn callback error:", error);
     return res.status(500).send(`
       <!DOCTYPE html>
       <html>
@@ -156,7 +157,7 @@ export const handleLinkedInCallback = async (req, res) => {
       <body>
         <div class="card">
           <h2>Connection Expired</h2>
-          <p>${error.message.includes('expired') || error.message.includes('code') ? 'The authorization code has expired or was already used. Please start a fresh login session.' : error.message}</p>
+          <p>${error.message.includes("expired") || error.message.includes("code") ? "The authorization code has expired or was already used. Please start a fresh login session." : error.message}</p>
           <a href="${retryAuthUrl}" class="btn">Start Fresh LinkedIn Login</a>
         </div>
       </body>
@@ -174,7 +175,7 @@ export const handleGetMe = async (req, res) => {
     if (cached) {
       return res.status(200).json({
         success: true,
-        source: 'REDIS',
+        source: "REDIS",
         profile: cached,
         user: cached,
       });
@@ -188,15 +189,15 @@ export const handleGetMe = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      source: 'SUPABASE',
+      source: "SUPABASE",
       profile,
       user: profile,
     });
   } catch (error) {
-    console.error('Get profile error:', error);
+    console.error("Get profile error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to retrieve profile',
+      error: error.message || "Failed to retrieve profile",
     });
   }
 };
@@ -212,15 +213,15 @@ export const handleDisconnect = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      source: 'SUPABASE',
-      message: 'LinkedIn account disconnected successfully',
+      source: "SUPABASE",
+      message: "LinkedIn account disconnected successfully",
       ...result,
     });
   } catch (error) {
-    console.error('Disconnect error:', error);
+    console.error("Disconnect error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to disconnect account',
+      error: error.message || "Failed to disconnect account",
     });
   }
 };

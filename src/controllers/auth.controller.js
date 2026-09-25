@@ -1,8 +1,8 @@
-import { AuthService } from '../services/auth.service.js';
-import { config } from '../config/env.js';
-import { redisService, TTL } from '../services/redis.service.js';
+import { AuthService } from "../services/auth.service.js";
+import { config } from "../config/env.js";
+import { redisService, TTL } from "../services/redis.service.js";
 
-export const handleLinkedInExchange = async (req, res) => {
+export const handleLinkedInExchangeJSON = async (req, res) => {
   try {
     const { code, redirectUri, redirect_uri } = req.body;
     const finalRedirectUri = redirectUri || redirect_uri;
@@ -10,7 +10,8 @@ export const handleLinkedInExchange = async (req, res) => {
     if (!code) {
       return res.status(400).json({
         success: false,
-        error: 'Authorization code is required in request body (e.g. { "code": "..." }).',
+        error:
+          'Authorization code is required in request body (e.g. { "code": "..." }).',
       });
     }
 
@@ -21,17 +22,17 @@ export const handleLinkedInExchange = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      source: 'SUPABASE',
-      message: 'LinkedIn authentication successful',
+      source: "SUPABASE",
+      message: "LinkedIn authentication successful",
       token: result.token,
       profile: result.profile,
       user: result.profile,
     });
   } catch (error) {
-    console.error('LinkedIn exchange error:', error);
+    console.error("LinkedIn exchange error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'LinkedIn authentication failed',
+      error: error.message || "LinkedIn authentication failed",
     });
   }
 };
@@ -39,16 +40,26 @@ export const handleLinkedInExchange = async (req, res) => {
 /**
  * Helper to construct the LinkedIn OAuth 2.0 Authorization URL
  */
-export const buildLinkedInAuthUrl = ({ clientId, redirectUri, state, scope }) => {
-  const finalClientId = clientId || config.linkedin.clientId || '77wtiyb9nrkwzr';
-  const finalScope = scope || 'openid profile email w_member_social';
+export const buildLinkedInAuthUrl = ({
+  clientId,
+  redirectUri,
+  state,
+  scope,
+}) => {
+  const finalClientId =
+    clientId || config.linkedin.clientId || "77wtiyb9nrkwzr";
+  const finalScope = scope || "openid profile email w_member_social";
   const params = new URLSearchParams({
-    response_type: 'code',
+    response_type: "code",
     client_id: finalClientId,
     redirect_uri: redirectUri,
     scope: finalScope,
   });
-  if (state) params.set('state', typeof state === 'object' ? JSON.stringify(state) : state);
+  if (state)
+    params.set(
+      "state",
+      typeof state === "object" ? JSON.stringify(state) : state,
+    );
   return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
 };
 
@@ -57,14 +68,16 @@ export const buildLinkedInAuthUrl = ({ clientId, redirectUri, state, scope }) =>
  * Returns preconfigured LinkedIn OAuth 2.0 authorization URL for React web apps
  */
 export const handleGetLinkedInAuthUrl = (req, res) => {
-  const host = req.get('host') || 'corelink-server.vercel.app';
-  const protocol = req.protocol || (host.includes('localhost') ? 'http' : 'https');
+  const host = req.get("host") || "corelink-server.vercel.app";
+  const protocol =
+    req.protocol || (host.includes("localhost") ? "http" : "https");
   const defaultCallback = `${protocol}://${host}/api/auth/linkedin/callback`;
 
-  const { redirect_uri, redirectUri, return_to, returnTo, state, scope } = req.query;
+  const { redirect_uri, redirectUri, return_to, returnTo, state, scope } =
+    req.query;
   const targetCallback = redirect_uri || redirectUri || defaultCallback;
 
-  let statePayload = state || '';
+  let statePayload = state || "";
   if (return_to || returnTo) {
     statePayload = JSON.stringify({
       return_to: return_to || returnTo,
@@ -91,14 +104,16 @@ export const handleGetLinkedInAuthUrl = (req, res) => {
  * Directly initiates LinkedIn OAuth and redirects browser to LinkedIn auth screen
  */
 export const handleLinkedInLoginRedirect = (req, res) => {
-  const host = req.get('host') || 'corelink-server.vercel.app';
-  const protocol = req.protocol || (host.includes('localhost') ? 'http' : 'https');
+  const host = req.get("host") || "corelink-server.vercel.app";
+  const protocol =
+    req.protocol || (host.includes("localhost") ? "http" : "https");
   const defaultCallback = `${protocol}://${host}/api/auth/linkedin/callback`;
 
-  const { redirect_uri, redirectUri, return_to, returnTo, state, scope } = req.query;
+  const { redirect_uri, redirectUri, return_to, returnTo, state, scope } =
+    req.query;
   const targetCallback = redirect_uri || redirectUri || defaultCallback;
 
-  let statePayload = state || '';
+  let statePayload = state || "";
   if (return_to || returnTo) {
     statePayload = JSON.stringify({
       return_to: return_to || returnTo,
@@ -127,23 +142,23 @@ export const handleDevLogin = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      source: 'DEV_SESSION',
-      message: 'Developer test session generated successfully',
+      source: "DEV_SESSION",
+      message: "Developer test session generated successfully",
       token: result.token,
       profile: result.profile,
       user: result.profile,
     });
   } catch (error) {
-    console.error('Dev login error:', error);
+    console.error("Dev login error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to generate developer session',
+      error: error.message || "Failed to generate developer session",
     });
   }
 };
 
 export const handleLinkedInCallback = async (req, res) => {
-  const clientId = config.linkedin.clientId || '77wtiyb9nrkwzr';
+  const clientId = config.linkedin.clientId || "77wtiyb9nrkwzr";
   const retryAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=https%3A%2F%2Fcorelink-server.vercel.app%2Fapi%2Fauth%2Flinkedin%2Fcallback&scope=openid%20profile%20email%20w_member_social`;
 
   try {
@@ -167,7 +182,7 @@ export const handleLinkedInCallback = async (req, res) => {
         <body>
           <div class="card">
             <h2>Authentication Cancelled</h2>
-            <p>${error_description || error || 'You cancelled the LinkedIn authorization request.'}</p>
+            <p>${error_description || error || "You cancelled the LinkedIn authorization request."}</p>
             <a href="${retryAuthUrl}" class="btn">Try Signing In Again</a>
           </div>
         </body>
@@ -200,8 +215,8 @@ export const handleLinkedInCallback = async (req, res) => {
     }
 
     // Determine canonical redirect URI matching what was sent in the auth URL
-    const host = req.get('host') || 'corelink-server.vercel.app';
-    const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+    const host = req.get("host") || "corelink-server.vercel.app";
+    const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
     const redirectUri = isLocal
       ? `http://${host}/api/auth/linkedin/callback`
       : `https://${host}/api/auth/linkedin/callback`;
@@ -220,18 +235,22 @@ export const handleLinkedInCallback = async (req, res) => {
           returnToUrl = parsedState.return_to;
         }
       } catch {
-        if (state.startsWith('http://') || state.startsWith('https://')) {
+        if (state.startsWith("http://") || state.startsWith("https://")) {
           returnToUrl = state;
         }
       }
     }
 
     if (returnToUrl) {
-      const separator = returnToUrl.includes('?') ? '&' : '?';
-      return res.redirect(`${returnToUrl}${separator}token=${encodeURIComponent(result.token)}&user_id=${encodeURIComponent(result.profile.id)}`);
+      const separator = returnToUrl.includes("?") ? "&" : "?";
+      return res.redirect(
+        `${returnToUrl}${separator}token=${encodeURIComponent(result.token)}&user_id=${encodeURIComponent(result.profile.id)}`,
+      );
     }
 
     const deepLinkUrl = `corelink://auth?token=${encodeURIComponent(result.token)}`;
+    // TODO: replace with production web app URL at deploy time
+    const webDashboardUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(result.token)}&user_id=${encodeURIComponent(result.profile.id)}`;
 
     return res.status(200).send(`
       <!DOCTYPE html>
@@ -249,8 +268,6 @@ export const handleLinkedInCallback = async (req, res) => {
           .btn { display: inline-block; width: 100%; box-sizing: border-box; background: #00C4FF; color: #0B0F1A; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 20px; border-radius: 12px; margin-bottom: 12px; transition: opacity 0.2s; border: none; cursor: pointer; }
           .btn:hover { opacity: 0.9; }
           .btn-secondary { background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); }
-          .dev-box { margin-top: 20px; text-align: left; background: #090D16; border-radius: 12px; padding: 14px; border: 1px solid rgba(255,255,255,0.06); font-family: monospace; font-size: 12px; }
-          .token-text { word-break: break-all; color: #00C4FF; margin-top: 6px; user-select: all; }
         </style>
         <script>
           // If launched inside a popup by a React web app, transmit credentials to parent window
@@ -269,14 +286,12 @@ export const handleLinkedInCallback = async (req, res) => {
             }
           }
 
-          // Also trigger mobile deep link
-          window.location.href = "${deepLinkUrl}";
+          var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-          function copyToken() {
-            navigator.clipboard.writeText("${result.token}").then(function() {
-              alert('CoreLink JWT Token copied to clipboard!');
-            });
-          }
+          // Auto-redirect: mobile users go to the app, web users go to the dashboard
+          setTimeout(function() {
+            window.location.href = isMobile ? "${deepLinkUrl}" : "${webDashboardUrl}";
+          }, 1500);
         </script>
       </head>
       <body>
@@ -284,18 +299,14 @@ export const handleLinkedInCallback = async (req, res) => {
           <img src="/favicon.png" class="logo-img" alt="CoreLink Logo" />
           <h2>Welcome, ${result.profile.name}!</h2>
           <p>Your LinkedIn account is securely connected. Redirecting you to CoreLink...</p>
-          <a href="${deepLinkUrl}" class="btn">Open CoreLink Mobile App</a>
-          <button onclick="copyToken()" class="btn btn-secondary">Copy JWT Token (For Web / Dev)</button>
-          <div class="dev-box">
-            <div style="color: #8C9BAE; font-size: 11px;">JWT SESSION TOKEN (30-DAY TTL):</div>
-            <div class="token-text">${result.token.substring(0, 48)}...</div>
-          </div>
+          <a href="${webDashboardUrl}" class="btn">Continue to Dashboard</a>
+          <a href="${deepLinkUrl}" class="btn btn-secondary">Open CoreLink Mobile App</a>
         </div>
       </body>
       </html>
     `);
   } catch (error) {
-    console.error('LinkedIn callback error:', error);
+    console.error("LinkedIn callback error:", error);
     return res.status(500).send(`
       <!DOCTYPE html>
       <html>
@@ -313,7 +324,7 @@ export const handleLinkedInCallback = async (req, res) => {
       <body>
         <div class="card">
           <h2>Connection Expired</h2>
-          <p>${error.message.includes('expired') || error.message.includes('code') ? 'The authorization code has expired or was already used. Please start a fresh login session.' : error.message}</p>
+          <p>${error.message.includes("expired") || error.message.includes("code") ? "The authorization code has expired or was already used. Please start a fresh login session." : error.message}</p>
           <a href="${retryAuthUrl}" class="btn">Start Fresh LinkedIn Login</a>
         </div>
       </body>
@@ -331,7 +342,7 @@ export const handleGetMe = async (req, res) => {
     if (cached) {
       return res.status(200).json({
         success: true,
-        source: 'REDIS',
+        source: "REDIS",
         profile: cached,
         user: cached,
       });
@@ -345,15 +356,15 @@ export const handleGetMe = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      source: 'SUPABASE',
+      source: "SUPABASE",
       profile,
       user: profile,
     });
   } catch (error) {
-    console.error('Get profile error:', error);
+    console.error("Get profile error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to retrieve profile',
+      error: error.message || "Failed to retrieve profile",
     });
   }
 };
@@ -369,15 +380,15 @@ export const handleDisconnect = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      source: 'SUPABASE',
-      message: 'LinkedIn account disconnected successfully',
+      source: "SUPABASE",
+      message: "LinkedIn account disconnected successfully",
       ...result,
     });
   } catch (error) {
-    console.error('Disconnect error:', error);
+    console.error("Disconnect error:", error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Failed to disconnect account',
+      error: error.message || "Failed to disconnect account",
     });
   }
 };

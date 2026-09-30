@@ -4,15 +4,13 @@ import { supabaseAdmin } from '../config/supabase.js';
 
 export class PostService {
   /**
-   * Creates a new scheduled post in Supabase
-   */
-    /**
    * Safely converts any scheduled date input to UTC ISO string using client timezone offset if needed
    */
   static parseScheduledDate(scheduledAt, timezoneOffsetMinutes = null) {
     if (!scheduledAt) return null;
     const str = String(scheduledAt).trim();
     const hasTimezone = /Z|[+-]\d{2}(:?\d{2})?$/i.test(str);
+    
     if (hasTimezone) {
       const d = new Date(str);
       if (isNaN(d.getTime())) throw new Error('Invalid scheduled_at date format.');
@@ -80,9 +78,6 @@ export class PostService {
     return this.formatPost(post);
   }
 
-  /**
-   * Retrieves all posts for a user with optional status filtering
-   */
   static async getPosts({ userId, status }) {
     let query = supabaseAdmin
       .from('posts')
@@ -104,9 +99,6 @@ export class PostService {
     return (posts || []).map((p) => this.formatPost(p));
   }
 
-  /**
-   * Retrieves a single post by ID ensuring user ownership
-   */
   static async getPostById({ userId, postId }) {
     const { data: post, error } = await supabaseAdmin
       .from('posts')
@@ -122,9 +114,6 @@ export class PostService {
     return this.formatPost(post);
   }
 
-  /**
-   * Updates an existing post
-   */
   static async updatePost({ userId, postId, content, scheduledAt, status, mediaUrl, mediaType, mediaAssetUrn }) {
     const updatePayload = {
       updated_at: new Date().toISOString(),
@@ -159,9 +148,6 @@ export class PostService {
     return this.formatPost(updatedPost);
   }
 
-  /**
-   * Deletes a scheduled post
-   */
   static async deletePost({ userId, postId, deleteFromLinkedIn = false }) {
     const post = await this.getPostById({ userId, postId });
     if (!post) {
@@ -210,9 +196,6 @@ export class PostService {
     };
   }
 
-  /**
-   * Synchronizes recent posts from user's live LinkedIn account into CoreLink
-   */
   static async syncLinkedInPosts({ userId }) {
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
@@ -240,7 +223,6 @@ export class PostService {
       });
     } catch (fetchErr) {
       console.warn('LinkedIn author posts fetch notice:', fetchErr.message);
-      // LinkedIn returns 403 when Developer app lacks Community Management API partner access
       if (
         fetchErr.message.includes('403') ||
         fetchErr.message.includes('ACCESS_DENIED') ||
@@ -253,7 +235,6 @@ export class PostService {
       }
     }
 
-    // Fetch existing posts with linkedin_post_urn
     const { data: existingPosts } = await supabaseAdmin
       .from('posts')
       .select('id, linkedin_post_urn, status')
@@ -301,9 +282,6 @@ export class PostService {
     };
   }
 
-  /**
-   * Aggregates post metrics & stats for mobile dashboard
-   */
   static async getPostStats({ userId }) {
     const { data: posts, error } = await supabaseAdmin
       .from('posts')
@@ -329,40 +307,30 @@ export class PostService {
   }
 
   /**
-   * Formats raw Supabase post record for API consistency
+   * Formats raw Supabase post record for API consistency (CLEAN camelCase ONLY)
    */
   static formatPost(post) {
     if (!post) return null;
+    
     return {
       id: post.id,
       userId: post.user_id,
-      user_id: post.user_id,
       content: post.content,
-      mediaUrl: post.media_url,
-      media_url: post.media_url,
-      mediaType: post.media_type,
-      media_type: post.media_type,
-      mediaAssetUrn: post.media_asset_urn,
+      mediaUrl: post.media_url || null,
+      mediaType: post.media_type || 'none',
+      mediaAssetUrn: post.media_asset_urn || null,
       scheduledAt: post.scheduled_at,
-      scheduled_at: post.scheduled_at,
-      publishedAt: post.published_at,
-      published_at: post.published_at,
+      publishedAt: post.published_at || null,
       status: post.status,
-      linkedinPostUrn: post.linkedin_post_urn,
-      errorLog: post.error_log,
-      retryCount: post.retry_count,
+      linkedinPostUrn: post.linkedin_post_urn || null,
+      errorLog: post.error_log || null,
+      retryCount: post.retry_count || 0,
       likesCount: post.likes_count || 0,
-      likes_count: post.likes_count || 0,
       commentsCount: post.comments_count || 0,
-      comments_count: post.comments_count || 0,
       sharesCount: post.shares_count || 0,
-      shares_count: post.shares_count || 0,
       impressionsCount: post.impressions_count || 0,
-      impressions_count: post.impressions_count || 0,
       engagementRate: Number(post.engagement_rate || 0),
-      engagement_rate: Number(post.engagement_rate || 0),
       metricsLastSyncedAt: post.metrics_last_synced_at || null,
-      metrics_last_synced_at: post.metrics_last_synced_at || null,
       createdAt: post.created_at,
       updatedAt: post.updated_at,
     };

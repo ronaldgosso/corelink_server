@@ -15,6 +15,13 @@ import {
 import { handlePublishPostNow, getScheduleWindow } from '../controllers/publish.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 
+
+
+
+
+
+
+
 const router = Router();
 
 // All posts endpoints require user authentication
@@ -42,6 +49,17 @@ router.post('/:id/analytics/sync', handleForceSyncPostAnalytics);
 
 // Sync recent published posts from LinkedIn
 router.post('/sync-linkedin', handleSyncLinkedInPosts);
+
+
+
+console.log("POST ROUTES REGISTERED");
+
+console.log(
+  router.stack.map((layer) => ({
+    path: layer.route?.path,
+    methods: layer.route?.methods,
+  }))
+);
 
 export default router;
 

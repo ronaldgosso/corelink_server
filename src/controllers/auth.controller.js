@@ -105,7 +105,14 @@ export const handleLinkedInCallback = async (req, res) => {
       redirectUri,
     });
 
-    const deepLinkUrl = `corelink://auth?token=${encodeURIComponent(result.token)}`;
+
+  const frontendUrl =
+  process.env.FRONTEND_URL || 'http://localhost:5173';
+
+const deepLinkUrl =
+  `${frontendUrl}/dashboard?token=${encodeURIComponent(result.token)}`;
+
+    // const deepLinkUrl = `corelink://auth?token=${encodeURIComponent(result.token)}`;
 
     return res.status(200).send(`
       <!DOCTYPE html>

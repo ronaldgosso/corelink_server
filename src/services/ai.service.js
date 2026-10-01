@@ -2,7 +2,7 @@ import { Mistral } from '@mistralai/mistralai';
 import { config } from '../config/env.js';
 import { supabaseAdmin } from '../config/supabase.js';
 
-const DEFAULT_MISTRAL_API_KEY = 'mstrl_G3gEg3sVCNen1qMnMrmPXNkKp913E0Ea_3jCyBu';
+const DEFAULT_MISTRAL_API_KEY = 'mstrl_eJbd47hz2qFmostEXMOilr3bojtYrQoZ_3DoUWO';
 const CANDIDATE_MODELS = [
   'ministral-8b-latest',
   'open-mistral-7b',

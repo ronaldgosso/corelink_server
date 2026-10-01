@@ -81,9 +81,28 @@ Respond strictly in valid JSON format:
       };
     }
 
-    const generatedText = parsedResult.generated_content || '';
-    const hookVariations = parsedResult.hook_variations || [];
-    const hashtags = parsedResult.hashtags || [];
+    let generatedText = parsedResult.generated_content || '';
+    if (typeof generatedText === 'object' && generatedText !== null) {
+      generatedText = generatedText.post?.content || generatedText.content || JSON.stringify(generatedText, null, 2);
+    }
+
+    let hookVariations = parsedResult.hook_variations || [];
+    if (!Array.isArray(hookVariations) || hookVariations.length === 0) {
+      if (parsedResult.generated_content?.post?.hook) {
+        hookVariations = [parsedResult.generated_content.post.hook];
+      } else {
+        hookVariations = [];
+      }
+    }
+
+    let hashtags = parsedResult.hashtags || [];
+    if (!Array.isArray(hashtags) || hashtags.length === 0) {
+      if (Array.isArray(parsedResult.generated_content?.post?.hashtags)) {
+        hashtags = parsedResult.generated_content.post.hashtags;
+      } else {
+        hashtags = [];
+      }
+    }
 
     // Log generation to Supabase for audit & quota metrics
     let logId = crypto.randomUUID();

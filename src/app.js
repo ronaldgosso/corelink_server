@@ -65,8 +65,8 @@ app.use(
   })
 );
 
-// Explicit preflight handling across all routes
-app.options('*', cors());
+// Favicon handler (avoids 404 / 500 on browser icon requests)
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // HTTP request logging
 app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));

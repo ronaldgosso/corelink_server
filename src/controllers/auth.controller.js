@@ -309,33 +309,58 @@ export const handleLinkedInCallback = async (req, res) => {
             }
           }
 
-          // Transmit immediately
-          sendAuthMessage();
-
-          // If launched inside a popup, close automatically after ensuring delivery
-          if (window.opener && !window.opener.closed) {
-            setTimeout(function() {
-              sendAuthMessage();
-              try {
-                window.close();
-              } catch (_) {}
-            }, 500);
+          function killCurrentWindow() {
+            try { window.close(); } catch (_) {}
+            try { self.close(); } catch (_) {}
+            try { window.open('', '_self', ''); window.close(); } catch (_) {}
           }
+
+          function redirectToDashboard() {
+            var redirected = false;
+            sendAuthMessage();
+
+            // 1. If opened by a parent window, redirect that previous page to Dashboard!
+            if (window.opener && !window.opener.closed) {
+              try {
+                window.opener.location.href = "${webDashboardUrl}";
+                window.opener.focus();
+                redirected = true;
+              } catch (err) {
+                console.warn('Opener redirect error:', err);
+              }
+            }
+
+            // 2. Kill this popup window
+            if (redirected) {
+              var statusText = document.getElementById('status-text');
+              if (statusText) statusText.textContent = "Redirected to Dashboard in your CoreLink workspace. Closing window...";
+              killCurrentWindow();
+              setTimeout(killCurrentWindow, 300);
+            } else {
+              // If no opener, navigate this window directly
+              window.location.href = "${webDashboardUrl}";
+            }
+          }
+
+          // Transmit auth message immediately
+          sendAuthMessage();
 
           var serverPlatform = ${JSON.stringify(requestedPlatform)};
           var isMobile = serverPlatform === 'mobile' || (serverPlatform !== 'web' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
 
           function handleContinue(e) {
-            if (window.opener && !window.opener.closed) {
-              if (e) e.preventDefault();
-              sendAuthMessage();
-              try {
-                window.opener.focus();
-              } catch (_) {}
-              window.close();
+            if (e) e.preventDefault();
+            var webBtn = document.getElementById('web-btn');
+            if (webBtn) {
+              webBtn.textContent = "Redirecting to Dashboard...";
+              webBtn.style.opacity = "0.7";
+            }
+            if (isMobile) {
+              window.location.href = "${deepLinkUrl}";
               return false;
             }
-            window.location.href = "${webDashboardUrl}";
+            redirectToDashboard();
+            return false;
           }
 
           // Ensure correct button and copy are visible
@@ -357,12 +382,14 @@ export const handleLinkedInCallback = async (req, res) => {
             }
           });
 
-          // Auto-redirect if NOT inside a popup (standalone tab or mobile app)
-          if (!window.opener) {
-            setTimeout(function() {
-              window.location.href = isMobile ? "${deepLinkUrl}" : "${webDashboardUrl}";
-            }, 1200);
-          }
+          // Auto-redirect after short timeout
+          setTimeout(function() {
+            if (isMobile) {
+              window.location.href = "${deepLinkUrl}";
+            } else {
+              redirectToDashboard();
+            }
+          }, 1500);
         </script>
       </head>
       <body>

@@ -227,17 +227,36 @@ export const handleLinkedInCallback = async (req, res) => {
     });
 
     // Check if state requested a web return URL (e.g. React app on localhost:5173 or production domain)
+    // Determine if request originated from mobile or web via state, query params, or user-agent
+    let requestedPlatform = null;
     let returnToUrl = null;
+
     if (state) {
       try {
         const parsedState = JSON.parse(state);
         if (parsedState?.return_to) {
           returnToUrl = parsedState.return_to;
         }
+        if (parsedState?.platform) {
+          requestedPlatform = String(parsedState.platform).toLowerCase();
+        } else if (parsedState?.client) {
+          requestedPlatform = String(parsedState.client).toLowerCase();
+        } else if (parsedState?.source) {
+          requestedPlatform = String(parsedState.source).toLowerCase();
+        }
       } catch {
         if (state.startsWith("http://") || state.startsWith("https://")) {
           returnToUrl = state;
+        } else if (state.toLowerCase() === "mobile" || state.toLowerCase() === "web") {
+          requestedPlatform = state.toLowerCase();
         }
+      }
+    }
+
+    if (!requestedPlatform) {
+      const qPlatform = req.query.platform || req.query.client || req.query.source;
+      if (qPlatform) {
+        requestedPlatform = String(qPlatform).toLowerCase();
       }
     }
 
@@ -248,9 +267,13 @@ export const handleLinkedInCallback = async (req, res) => {
       );
     }
 
+    const userAgent = req.get("user-agent") || "";
+    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent);
+    const isMobile = requestedPlatform === "mobile" || (requestedPlatform !== "web" && isMobileUA);
+
     const deepLinkUrl = `corelink://auth?token=${encodeURIComponent(result.token)}`;
-    // TODO: replace with production web app URL at deploy time
-    const webDashboardUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(result.token)}&user_id=${encodeURIComponent(result.profile.id)}`;
+    const frontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const webDashboardUrl = `${frontendBaseUrl}/dashboard?token=${encodeURIComponent(result.token)}&user_id=${encodeURIComponent(result.profile.id)}`;
 
     return res.status(200).send(`
       <!DOCTYPE html>
@@ -286,7 +309,25 @@ export const handleLinkedInCallback = async (req, res) => {
             }
           }
 
-          var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+          var serverPlatform = ${JSON.stringify(requestedPlatform)};
+          var isMobile = serverPlatform === 'mobile' || (serverPlatform !== 'web' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
+
+          // Ensure correct button and copy are visible
+          window.addEventListener('DOMContentLoaded', function() {
+            var webBtn = document.getElementById('web-btn');
+            var mobileBtn = document.getElementById('mobile-btn');
+            var statusText = document.getElementById('status-text');
+
+            if (isMobile) {
+              if (webBtn) webBtn.style.display = 'none';
+              if (mobileBtn) mobileBtn.style.display = 'inline-block';
+              if (statusText) statusText.textContent = "Your LinkedIn account is securely connected. Redirecting you to CoreLink mobile app...";
+            } else {
+              if (mobileBtn) mobileBtn.style.display = 'none';
+              if (webBtn) webBtn.style.display = 'inline-block';
+              if (statusText) statusText.textContent = "Your LinkedIn account is securely connected. Redirecting you to your Dashboard...";
+            }
+          });
 
           // Auto-redirect: mobile users go to the app, web users go to the dashboard
           setTimeout(function() {
@@ -298,9 +339,9 @@ export const handleLinkedInCallback = async (req, res) => {
         <div class="card">
           <img src="/favicon.png" class="logo-img" alt="CoreLink Logo" />
           <h2>Welcome, ${result.profile.name}!</h2>
-          <p>Your LinkedIn account is securely connected. Redirecting you to CoreLink...</p>
-          <a href="${webDashboardUrl}" class="btn">Continue to Dashboard</a>
-          <a href="${deepLinkUrl}" class="btn btn-secondary">Open CoreLink Mobile App</a>
+          <p id="status-text">${isMobile ? "Your LinkedIn account is securely connected. Redirecting you to CoreLink mobile app..." : "Your LinkedIn account is securely connected. Redirecting you to your Dashboard..."}</p>
+          <a id="web-btn" href="${webDashboardUrl}" class="btn" style="${isMobile ? "display: none;" : ""}">Continue to Dashboard</a>
+          <a id="mobile-btn" href="${deepLinkUrl}" class="btn" style="${isMobile ? "" : "display: none;"}">Open CoreLink Mobile App</a>
         </div>
       </body>
       </html>

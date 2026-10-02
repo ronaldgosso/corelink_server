@@ -14,15 +14,59 @@ app.set('trust proxy', 1);
 // Security HTTP headers
 app.use(helmet());
 
+// Parse CORS allowed origins from config (comma-separated string or '*')
+const parseCorsOrigins = (corsConfig) => {
+  if (!corsConfig || corsConfig === '*') {
+    return '*';
+  }
+  const origins = corsConfig
+    .split(',')
+    .map((origin) => origin.replace(/['"]/g, '').trim())
+    .filter(Boolean);
+  return origins.length > 0 ? origins : '*';
+};
+
+const allowedOrigins = parseCorsOrigins(config.corsOrigin);
+
 // CORS configuration - supports React web apps (localhost & production)
 app.use(
   cors({
-    origin: config.corsOrigin === '*' ? true : config.corsOrigin.split(',').map((s) => s.trim()),
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // If configured to allow all origins, reflect incoming origin for credentials compatibility
+      if (allowedOrigins === '*') {
+        return callback(null, true);
+      }
+
+      // Check if incoming origin matches any allowed origin
+      if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Origin not allowed
+      return callback(null, false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'x-timezone-offset',
+      'X-Timezone-Offset',
+      'x-client-platform',
+      'X-Client-Platform',
+    ],
+    exposedHeaders: ['x-timezone-offset', 'X-Timezone-Offset'],
   })
 );
+
+// Explicit preflight handling across all routes
+app.options('*', cors());
 
 // HTTP request logging
 app.use(morgan(config.nodeEnv === 'development' ? 'dev' : 'combined'));

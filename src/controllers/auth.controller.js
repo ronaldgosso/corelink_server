@@ -293,27 +293,55 @@ export const handleLinkedInCallback = async (req, res) => {
           .btn-secondary { background: rgba(255, 255, 255, 0.08); color: #fff; border: 1px solid rgba(255, 255, 255, 0.15); }
         </style>
         <script>
-          // If launched inside a popup by a React web app, transmit credentials to parent window
-          if (window.opener) {
-            try {
-              window.opener.postMessage({
-                type: 'CORELINK_AUTH_SUCCESS',
-                token: "${result.token}",
-                profile: ${JSON.stringify(result.profile)}
-              }, '*');
-              setTimeout(function() {
-                window.close();
-              }, 1200);
-            } catch (err) {
-              console.warn('postMessage error:', err);
+          var authPayload = {
+            type: 'CORELINK_AUTH_SUCCESS',
+            token: "${result.token}",
+            profile: ${JSON.stringify(result.profile)}
+          };
+
+          function sendAuthMessage() {
+            if (window.opener && !window.opener.closed) {
+              try {
+                window.opener.postMessage(authPayload, '*');
+              } catch (err) {
+                console.warn('postMessage error:', err);
+              }
             }
+          }
+
+          // Transmit immediately
+          sendAuthMessage();
+
+          // If launched inside a popup, close automatically after ensuring delivery
+          if (window.opener && !window.opener.closed) {
+            setTimeout(function() {
+              sendAuthMessage();
+              try {
+                window.close();
+              } catch (_) {}
+            }, 500);
           }
 
           var serverPlatform = ${JSON.stringify(requestedPlatform)};
           var isMobile = serverPlatform === 'mobile' || (serverPlatform !== 'web' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
 
+          function handleContinue(e) {
+            if (window.opener && !window.opener.closed) {
+              if (e) e.preventDefault();
+              sendAuthMessage();
+              try {
+                window.opener.focus();
+              } catch (_) {}
+              window.close();
+              return false;
+            }
+            window.location.href = "${webDashboardUrl}";
+          }
+
           // Ensure correct button and copy are visible
           window.addEventListener('DOMContentLoaded', function() {
+            sendAuthMessage();
+
             var webBtn = document.getElementById('web-btn');
             var mobileBtn = document.getElementById('mobile-btn');
             var statusText = document.getElementById('status-text');
@@ -329,10 +357,12 @@ export const handleLinkedInCallback = async (req, res) => {
             }
           });
 
-          // Auto-redirect: mobile users go to the app, web users go to the dashboard
-          setTimeout(function() {
-            window.location.href = isMobile ? "${deepLinkUrl}" : "${webDashboardUrl}";
-          }, 1500);
+          // Auto-redirect if NOT inside a popup (standalone tab or mobile app)
+          if (!window.opener) {
+            setTimeout(function() {
+              window.location.href = isMobile ? "${deepLinkUrl}" : "${webDashboardUrl}";
+            }, 1200);
+          }
         </script>
       </head>
       <body>
@@ -340,7 +370,7 @@ export const handleLinkedInCallback = async (req, res) => {
           <img src="/favicon.png" class="logo-img" alt="CoreLink Logo" />
           <h2>Welcome, ${result.profile.name}!</h2>
           <p id="status-text">${isMobile ? "Your LinkedIn account is securely connected. Redirecting you to CoreLink mobile app..." : "Your LinkedIn account is securely connected. Redirecting you to your Dashboard..."}</p>
-          <a id="web-btn" href="${webDashboardUrl}" class="btn" style="${isMobile ? "display: none;" : ""}">Continue to Dashboard</a>
+          <a id="web-btn" href="${webDashboardUrl}" class="btn" onclick="handleContinue(event)" style="${isMobile ? "display: none;" : ""}">Continue to Dashboard</a>
           <a id="mobile-btn" href="${deepLinkUrl}" class="btn" style="${isMobile ? "" : "display: none;"}">Open CoreLink Mobile App</a>
         </div>
       </body>

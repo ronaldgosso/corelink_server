@@ -1,110 +1,85 @@
 import { PostService } from '../services/post.service.js';
 import { redisService, TTL } from '../services/redis.service.js';
+import { createPostSchema, updatePostSchema, validateBody } from '../validators/post.validator.js';
 
-export const handleCreatePost = async (req, res) => {
-  try {
-    const {
-      content,
-      scheduled_at,
-      scheduledAt,
-      media_url,
-      mediaUrl,
-      media_type,
-      mediaType,
-      media_asset_urn,
-      mediaAssetUrn,
-      status,
-    } = req.body;
-    const finalScheduledAt = scheduled_at || scheduledAt;
-    const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
-    const finalMediaType = media_type || mediaType || 'none';
-    const finalMediaAssetUrn = media_asset_urn || mediaAssetUrn || null;
-
-    if (!content) {
-      return res.status(400).json({
-        success: false,
-        error: 'Content is required in request body (e.g. { "content": "..." }).',
-      });
-    }
-
-    if (!finalScheduledAt) {
-      return res.status(400).json({
-        success: false,
-        error: 'scheduled_at is required in request body (e.g. { "scheduled_at": "2026-09-04T10:00:00Z" }).',
-      });
-    }
-
-    const tzOffset = req.headers['x-timezone-offset'] || req.body.timezone_offset;
-    const post = await PostService.createPost({
-      userId: req.user.id,
-      content,
-      scheduledAt: finalScheduledAt,
-      timezoneOffset: tzOffset,
-      mediaUrl: finalMediaUrl,
-      mediaType: finalMediaType,
-      mediaAssetUrn: finalMediaAssetUrn,
-      status: status || 'pending',
-    });
-
-    // Invalidate cached post lists & stats for this user
-    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
-    await redisService.del(`cache:stats:${req.user.id}`);
-
-    return res.status(201).json({
-      success: true,
-      source: 'SUPABASE',
-      message: 'Post created and scheduled successfully',
-      post,
-      data: post,
-    });
-  } catch (error) {
-    console.error('Create post error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to create post',
-    });
-  }
+// Helper to keep error responses consistent across all endpoints
+const handleError = (res, error, fallbackMessage = 'Internal server error', statusCode = 500) => {
+  console.error(`[Error] ${fallbackMessage}:`, error);
+  return res.status(statusCode).json({
+    success: false,
+    message: error.message || fallbackMessage,
+    data: null,
+  });
 };
+
+export const handleCreatePost = [
+  validateBody(createPostSchema),
+  async (req, res) => {
+    try {
+      console.log("🚀 POST /api/posts HIT THE CONTROLLER!"); 
+      
+      const { 
+        content, 
+        scheduled_at, 
+        scheduledAt, 
+        media_url, 
+        mediaUrl, 
+        media_type, 
+        mediaType, 
+        media_asset_urn, 
+        mediaAssetUrn, 
+        status, 
+        timezone_offset 
+      } = req.validatedData;
+      
+      const finalScheduledAt = scheduled_at || scheduledAt;
+      const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
+      const finalMediaType = media_type || mediaType || 'none';
+      const finalMediaAssetUrn = media_asset_urn || mediaAssetUrn || null;
+      const tzOffset = timezone_offset || req.headers['x-timezone-offset'];
+
+      const post = await PostService.createPost({
+        userId: req.user.id,
+        content,
+        scheduledAt: finalScheduledAt,
+        timezoneOffset: tzOffset,
+        mediaUrl: finalMediaUrl,
+        mediaType: finalMediaType,
+        mediaAssetUrn: finalMediaAssetUrn,
+        status: status || 'pending',
+      });
+
+      // Invalidate cache
+      await redisService.delPattern(`cache:posts:${req.user.id}:*`);
+      await redisService.del(`cache:stats:${req.user.id}`);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Post created and scheduled successfully',
+        data: post, // CLEAN: Only 'data', no 'source' or 'post' key
+      });
+    } catch (error) {
+      return handleError(res, error, 'Failed to create post');
+    }
+  }
+];
 
 export const handleGetPosts = async (req, res) => {
   try {
     const { status } = req.query;
     const cacheKey = `cache:posts:${req.user.id}:${status || 'all'}`;
 
-    // 1. Try reading from Redis cache
     const cached = await redisService.get(cacheKey);
     if (cached) {
-      return res.status(200).json({
-        success: true,
-        source: 'REDIS',
-        posts: cached,
-        data: cached,
-        count: cached.length,
-      });
+      return res.status(200).json({ success: true, message: 'Posts retrieved from cache', data: cached });
     }
 
-    // 2. Fetch from Supabase DB on cache miss
-    const posts = await PostService.getPosts({
-      userId: req.user.id,
-      status,
-    });
-
-    // 3. Store in Redis cache with explicit TTL (180 seconds / 3 minutes)
+    const posts = await PostService.getPosts({ userId: req.user.id, status });
     await redisService.set(cacheKey, posts, TTL.POSTS_LIST);
 
-    return res.status(200).json({
-      success: true,
-      source: 'SUPABASE',
-      posts,
-      data: posts,
-      count: posts.length,
-    });
+    return res.status(200).json({ success: true, message: 'Posts retrieved successfully', data: posts });
   } catch (error) {
-    console.error('Get posts error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to retrieve posts',
-    });
+    return handleError(res, error, 'Failed to retrieve posts');
   }
 };
 
@@ -113,144 +88,96 @@ export const handleGetPostById = async (req, res) => {
     const { id } = req.params;
     const cacheKey = `cache:post:${req.user.id}:${id}`;
 
-    // 1. Try reading single post from Redis cache
     const cached = await redisService.get(cacheKey);
     if (cached) {
-      return res.status(200).json({
-        success: true,
-        source: 'REDIS',
-        post: cached,
-        data: cached,
-      });
+      return res.status(200).json({ success: true, message: 'Post retrieved from cache', data: cached });
     }
 
-    // 2. Fetch from Supabase DB on cache miss
-    const post = await PostService.getPostById({
-      userId: req.user.id,
-      postId: id,
-    });
-
-    // 3. Store in Redis cache with explicit TTL (600 seconds / 10 minutes)
+    const post = await PostService.getPostById({ userId: req.user.id, postId: id });
     await redisService.set(cacheKey, post, TTL.POST_DETAIL);
 
-    return res.status(200).json({
-      success: true,
-      source: 'SUPABASE',
-      post,
-      data: post,
-    });
+    return res.status(200).json({ success: true, message: 'Post retrieved successfully', data: post });
   } catch (error) {
-    console.error('Get single post error:', error);
-    return res.status(error.message.includes('not found') ? 404 : 500).json({
-      success: false,
-      error: error.message || 'Failed to retrieve post',
-    });
+    const statusCode = error.message.includes('not found') ? 404 : 500;
+    return handleError(res, error, 'Failed to retrieve post', statusCode);
   }
 };
 
-export const handleUpdatePost = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      content,
-      scheduled_at,
-      scheduledAt,
-      status,
-      media_url,
-      mediaUrl,
-      media_type,
-      mediaType,
-      media_asset_urn,
-      mediaAssetUrn,
-    } = req.body;
-    const finalScheduledAt = scheduled_at || scheduledAt;
-    const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
-    const finalMediaType = media_type || mediaType;
-    const finalMediaAssetUrn = media_asset_urn !== undefined ? media_asset_urn : mediaAssetUrn;
+export const handleUpdatePost = [
+  validateBody(updatePostSchema),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { 
+        content, 
+        scheduled_at, 
+        scheduledAt, 
+        status, 
+        media_url, 
+        mediaUrl, 
+        media_type, 
+        mediaType, 
+        media_asset_urn, 
+        mediaAssetUrn 
+      } = req.validatedData;
+      
+      const finalScheduledAt = scheduled_at || scheduledAt;
+      const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
+      const finalMediaType = media_type || mediaType;
+      const finalMediaAssetUrn = media_asset_urn !== undefined ? media_asset_urn : mediaAssetUrn;
 
-    const updatedPost = await PostService.updatePost({
-      userId: req.user.id,
-      postId: id,
-      content,
-      scheduledAt: finalScheduledAt,
-      status,
-      mediaUrl: finalMediaUrl,
-      mediaType: finalMediaType,
-      mediaAssetUrn: finalMediaAssetUrn,
-    });
+      const updatedPost = await PostService.updatePost({
+        userId: req.user.id,
+        postId: id,
+        content,
+        scheduledAt: finalScheduledAt,
+        status,
+        mediaUrl: finalMediaUrl,
+        mediaType: finalMediaType,
+        mediaAssetUrn: finalMediaAssetUrn,
+      });
 
-    // Invalidate cached post and listings
-    await redisService.del(`cache:post:${req.user.id}:${id}`);
-    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
-    await redisService.del(`cache:stats:${req.user.id}`);
+      // Invalidate cache
+      await redisService.del(`cache:post:${req.user.id}:${id}`);
+      await redisService.delPattern(`cache:posts:${req.user.id}:*`);
+      await redisService.del(`cache:stats:${req.user.id}`);
 
-    return res.status(200).json({
-      success: true,
-      source: 'SUPABASE',
-      message: 'Post updated successfully',
-      post: updatedPost,
-      data: updatedPost,
-    });
-  } catch (error) {
-    console.error('Update post error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to update post',
-    });
+      return res.status(200).json({ success: true, message: 'Post updated successfully', data: updatedPost });
+    } catch (error) {
+      return handleError(res, error, 'Failed to update post');
+    }
   }
-};
+];
 
 export const handleDeletePost = async (req, res) => {
   try {
     const { id } = req.params;
     const deleteFromLinkedIn = req.query.deleteFromLinkedIn === 'true' || req.body?.deleteFromLinkedIn === true;
 
-    const result = await PostService.deletePost({
-      userId: req.user.id,
-      postId: id,
-      deleteFromLinkedIn,
-    });
+    const result = await PostService.deletePost({ userId: req.user.id, postId: id, deleteFromLinkedIn });
 
-    // Invalidate cached post and listings
+    // Invalidate cache
     await redisService.del(`cache:post:${req.user.id}:${id}`);
     await redisService.delPattern(`cache:posts:${req.user.id}:*`);
     await redisService.del(`cache:stats:${req.user.id}`);
 
-    return res.status(200).json({
-      success: true,
-      source: 'SUPABASE',
-      ...result,
-    });
+    return res.status(200).json({ success: true, message: 'Post deleted successfully', data: result });
   } catch (error) {
-    console.error('Delete post error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to delete post',
-    });
+    return handleError(res, error, 'Failed to delete post');
   }
 };
 
 export const handleSyncLinkedInPosts = async (req, res) => {
   try {
-    const result = await PostService.syncLinkedInPosts({
-      userId: req.user.id,
-    });
+    const result = await PostService.syncLinkedInPosts({ userId: req.user.id });
 
-    // Invalidate cached post listings & stats since fresh LinkedIn posts were imported
+    // Invalidate cache
     await redisService.delPattern(`cache:posts:${req.user.id}:*`);
     await redisService.del(`cache:stats:${req.user.id}`);
 
-    return res.status(200).json({
-      success: true,
-      source: 'SUPABASE',
-      ...result,
-    });
+    return res.status(200).json({ success: true, message: 'LinkedIn posts synced successfully', data: result });
   } catch (error) {
-    console.error('Sync LinkedIn posts error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to synchronize LinkedIn posts',
-    });
+    return handleError(res, error, 'Failed to synchronize LinkedIn posts');
   }
 };
 
@@ -258,36 +185,16 @@ export const handleGetPostStats = async (req, res) => {
   try {
     const cacheKey = `cache:stats:${req.user.id}`;
 
-    // 1. Try reading stats from Redis cache
     const cached = await redisService.get(cacheKey);
     if (cached) {
-      return res.status(200).json({
-        success: true,
-        source: 'REDIS',
-        stats: cached,
-        data: cached,
-      });
+      return res.status(200).json({ success: true, message: 'Stats retrieved from cache', data: cached });
     }
 
-    // 2. Fetch from Supabase DB on cache miss
-    const stats = await PostService.getPostStats({
-      userId: req.user.id,
-    });
-
-    // 3. Store in Redis cache with explicit TTL (300 seconds / 5 minutes)
+    const stats = await PostService.getPostStats({ userId: req.user.id });
     await redisService.set(cacheKey, stats, TTL.POST_STATS);
 
-    return res.status(200).json({
-      success: true,
-      source: 'SUPABASE',
-      stats,
-      data: stats,
-    });
+    return res.status(200).json({ success: true, message: 'Stats retrieved successfully', data: stats });
   } catch (error) {
-    console.error('Get stats error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to retrieve stats',
-    });
+    return handleError(res, error, 'Failed to retrieve stats');
   }
 };

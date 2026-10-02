@@ -3,6 +3,9 @@ import { config } from '../config/env.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { encrypt } from '../utils/crypto.js';
 
+
+
+
 export class AuthService {
   /**
    * Exchanges authorization code with LinkedIn, fetches user claims,
@@ -135,15 +138,30 @@ export class AuthService {
       if (!authCreateError && newAuthUser?.user?.id) {
         authUserId = newAuthUser.user.id;
       } else {
-        // If auth user already existed with this email, fetch the ID
-        const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
-        const existing = userList?.users?.find((u) => u.email === authEmail);
-        if (existing?.id) {
-          authUserId = existing.id;
-        } else {
-          authUserId = crypto.randomUUID();
-        }
-      }
+  // If auth user already existed with this email, fetch the ID
+  const { data: userList, error: listUsersError } =
+    await supabaseAdmin.auth.admin.listUsers();
+
+  if (listUsersError) {
+    throw new Error(
+      `Failed to find existing Supabase Auth user: ${listUsersError.message}`
+    );
+  }
+
+  const existing = userList?.users?.find(
+    (u) => u.email?.toLowerCase() === authEmail.toLowerCase()
+  );
+
+  if (existing?.id) {
+    authUserId = existing.id;
+  } else {
+    throw new Error(
+      `Failed to create or find Supabase Auth user: ${
+        authCreateError?.message || 'Unknown error'
+      }`
+    );
+  }
+}
 
       profileId = authUserId;
 

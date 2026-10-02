@@ -226,6 +226,15 @@ export const handleLinkedInCallback = async (req, res) => {
       redirectUri,
     });
 
+
+
+  const frontendUrl =
+  process.env.FRONTEND_URL || 'http://localhost:5173';
+
+const deepLinkUrl =
+  `${frontendUrl}/dashboard?token=${encodeURIComponent(result.token)}`;
+
+    // const deepLinkUrl = `corelink://auth?token=${encodeURIComponent(result.token)}`;
     // Check if state requested a web return URL (e.g. React app on localhost:5173 or production domain)
     let returnToUrl = null;
     if (state) {
@@ -248,9 +257,10 @@ export const handleLinkedInCallback = async (req, res) => {
       );
     }
 
-    const deepLinkUrl = `corelink://auth?token=${encodeURIComponent(result.token)}`;
+    // const deepLinkUrl = `corelink://auth?token=${encodeURIComponent(result.token)}`;
     // TODO: replace with production web app URL at deploy time
     const webDashboardUrl = `http://localhost:5173/dashboard?token=${encodeURIComponent(result.token)}&user_id=${encodeURIComponent(result.profile.id)}`;
+
 
     return res.status(200).send(`
       <!DOCTYPE html>

@@ -2,7 +2,6 @@ import { Mistral } from "@mistralai/mistralai";
 import { config } from "../config/env.js";
 import { supabaseAdmin } from "../config/supabase.js";
 
-const DEFAULT_MISTRAL_API_KEY = "mstrl_eJbd47hz2qFmostEXMOilr3bojtYrQoZ_3DoUWO";
 const CANDIDATE_MODELS = [
   "ministral-8b-latest",
   "open-mistral-7b",
@@ -16,11 +15,7 @@ export class AIService {
    * Safe environment variable resolution with optional chaining
    */
   static getApiKey() {
-    return (
-      config?.mistral?.apiKey ||
-      process?.env?.MISTRAL_API_KEY ||
-      DEFAULT_MISTRAL_API_KEY
-    );
+    return config?.mistral?.apiKey || process?.env?.MISTRAL_API_KEY || "";
   }
 
   /**

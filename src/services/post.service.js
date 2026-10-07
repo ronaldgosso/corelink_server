@@ -440,6 +440,17 @@ export class PostService {
    */
   static formatPost(post) {
     if (!post) return null;
+    const hasDevto = Boolean(post.devto_article_id || post.devto_url || post.devtoArticleId || post.devtoUrl);
+    const hasLinkedin = Boolean(post.linkedin_post_urn || post.linkedinPostUrn);
+    let resolvedPlatforms = post.platforms;
+    if (hasDevto && !hasLinkedin) {
+      resolvedPlatforms = ['devto'];
+    } else if (hasDevto && hasLinkedin) {
+      resolvedPlatforms = ['linkedin', 'devto'];
+    } else if (!resolvedPlatforms || resolvedPlatforms.length === 0) {
+      resolvedPlatforms = ['linkedin'];
+    }
+
     return {
       id: post.id,
       userId: post.user_id,
@@ -455,7 +466,7 @@ export class PostService {
       publishedAt: post.published_at,
       published_at: post.published_at,
       status: post.status,
-      platforms: post.platforms || ['linkedin'],
+      platforms: resolvedPlatforms,
       linkedinPostUrn: post.linkedin_post_urn,
       devtoArticleId: post.devto_article_id || null,
       devto_article_id: post.devto_article_id || null,

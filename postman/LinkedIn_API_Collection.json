@@ -363,7 +363,7 @@
               {
                 "key": "LinkedIn-Version",
                 "value": "{{linkedin_version}}",
-                "description": "Format: YYYYMM (e.g. 202401)"
+                "description": "Format: YYYYMM (e.g. 202609)"
               },
               {
                 "key": "X-Restli-Protocol-Version",
@@ -389,7 +389,7 @@
               "host": ["api", "linkedin", "com"],
               "path": ["rest", "posts"]
             },
-            "description": "### Create Text Post (Member)\n\nCreates a plain-text update published to the authenticated user's personal LinkedIn feed.\n\n**Required Scope:** `w_member_social`\n\n**Headers:**\n- `LinkedIn-Version: 202401`\n- `X-Restli-Protocol-Version: 2.0.0`\n- `Authorization: Bearer <access_token>`\n\n**Response:**\nReturns `201 Created` with the post URN in the `x-restli-id` response header."
+            "description": "### Create Text Post (Member)\n\nCreates a plain-text update published to the authenticated user's personal LinkedIn feed.\n\n**Required Scope:** `w_member_social`\n\n**Headers:**\n- `LinkedIn-Version: 202609`\n- `X-Restli-Protocol-Version: 2.0.0`\n- `Authorization: Bearer <access_token>`\n\n**Response:**\nReturns `201 Created` with the post URN in the `x-restli-id` response header."
           },
           "response": []
         },
@@ -1033,7 +1033,7 @@
         "exec": [
           "// Set default linkedin_version if not present",
           "if (!pm.environment.get(\"linkedin_version\")) {",
-          "    pm.environment.set(\"linkedin_version\", \"202401\");",
+          "    pm.environment.set(\"linkedin_version\", \"202609\");",
           "}"
         ],
         "type": "text/javascript"

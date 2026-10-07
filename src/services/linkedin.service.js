@@ -16,7 +16,7 @@ export class LinkedInService {
     }
 
     const author = personId.startsWith('urn:li:') ? personId : `urn:li:person:${personId}`;
-    const apiVersion = config.linkedin.apiVersion || '202509';
+    const apiVersion = config.linkedin.apiVersion || '202609';
 
     // Step 1: Initialize Image Upload
     const initResponse = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
@@ -79,7 +79,7 @@ export class LinkedInService {
     }
 
     const author = personId.startsWith('urn:li:') ? personId : `urn:li:person:${personId}`;
-    const apiVersion = config.linkedin.apiVersion || '202509';
+    const apiVersion = config.linkedin.apiVersion || '202609';
     const totalBytes = fileSizeBytes || (buffer ? buffer.length : 0);
 
     if (totalBytes < 75 * 1024) {
@@ -172,7 +172,7 @@ export class LinkedInService {
   }
 
   /**
-   * Publishes post content to LinkedIn REST API v202401
+   * Publishes post content to the LinkedIn REST Posts API
    */
   static async publishPostToLinkedIn({ accessToken, personId, commentary, mediaAssetUrn = null, mediaType = 'none' }) {
     if (!accessToken) {
@@ -184,7 +184,7 @@ export class LinkedInService {
     }
 
     const author = personId.startsWith('urn:li:') ? personId : `urn:li:person:${personId}`;
-    const apiVersion = config.linkedin.apiVersion || '202509';
+    const apiVersion = config.linkedin.apiVersion || '202609';
 
     const payload = {
       author,
@@ -478,7 +478,7 @@ export class LinkedInService {
       throw new Error('LinkedIn post URN is required.');
     }
 
-    const apiVersion = config.linkedin.apiVersion || '202509';
+    const apiVersion = config.linkedin.apiVersion || '202609';
     const encodedUrn = encodeURIComponent(postUrn);
     const response = await fetch(`https://api.linkedin.com/rest/posts/${encodedUrn}`, {
       method: 'DELETE',
@@ -509,7 +509,7 @@ export class LinkedInService {
     }
 
     const author = personId.startsWith('urn:li:') ? personId : `urn:li:person:${personId}`;
-    const apiVersion = config.linkedin.apiVersion || '202509';
+    const apiVersion = config.linkedin.apiVersion || '202609';
     const encodedAuthor = encodeURIComponent(author);
 
     const url = `https://api.linkedin.com/rest/posts?author=${encodedAuthor}&q=author&count=${count}&sortBy=CREATED`;
@@ -612,7 +612,7 @@ export class LinkedInService {
       };
     }
 
-    const apiVersion = config.linkedin.apiVersion || '202509';
+    const apiVersion = config.linkedin.apiVersion || '202609';
     const encodedUrn = encodeURIComponent(postUrn);
     let likes = 0;
     let comments = 0;
@@ -691,4 +691,3 @@ export class LinkedInService {
     };
   }
 }
-

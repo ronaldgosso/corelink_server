@@ -63,7 +63,7 @@ The collection is provided in **Postman v2.1.0 schema**, making it 100% compatib
 | `{{client_secret}}` | Your LinkedIn App Client Secret | Preset |
 | `{{redirect_uri}}` | OAuth Redirect URI (`http://localhost:5000/api/auth/linkedin/callback`) | Preset |
 | `{{state}}` | Random string protecting against CSRF | Preset |
-| `{{linkedin_version}}` | LinkedIn API REST version in `YYYYMM` format (Default: `202401`) | Preset |
+| `{{linkedin_version}}` | LinkedIn API REST version in `YYYYMM` format (Default: `202609`) | Preset |
 | `{{auth_code}}` | Temporary code from browser redirect | Manual input |
 | `{{access_token}}` | Bearer token used for all REST requests |  Auto-set by `1.2` |
 | `{{refresh_token}}` | Token used to refresh access tokens |  Auto-set by `1.2` |
@@ -151,7 +151,7 @@ All modern publishing is performed against the `https://api.linkedin.com/rest/po
 ### Required Headers:
 ```http
 Authorization: Bearer {{access_token}}
-LinkedIn-Version: 202401
+LinkedIn-Version: 202609
 X-Restli-Protocol-Version: 2.0.0
 Content-Type: application/json
 ```

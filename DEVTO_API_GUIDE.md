@@ -28,28 +28,31 @@ This guide details the **DEV.to (Forem API)** integration in `corelink_server`. 
 
 ---
 
-## 1. Configuration & Authentication
+## 1. Authentication & API Key Handling
 
-### Providing DEV.to API Key
-The server resolves your DEV.to API key in the following priority order:
+Each user on DEV.to has their own unique personal API key. Therefore, **all DEV.to endpoints require the user's API key to be passed from the frontend** per request.
 
-1. **Per-request Header**: `x-devto-api-key: your_key_here`
-2. **Per-request Body**: `"devto_api_key": "your_key_here"`
-3. **Environment Variable**: `DEVTO_API_KEY` in `.env`
-4. **User Database Profile**: `encrypted_devto_api_key` in `public.profiles`
+### Providing the DEV.to API Key from Frontend
+The frontend should pass the user's API key in one of the following ways:
 
-### Environment Configuration (`.env`)
-```ini
-# DEV.to Integration
-DEVTO_API_KEY=your_devto_api_key_here
-DEVTO_API_URL=https://dev.to/api
-```
+1. **HTTP Header (Recommended)**:
+   ```http
+   x-devto-api-key: your_devto_api_key_here
+   ```
+2. **Request Body / Query Parameter**:
+   ```json
+   {
+     "devto_api_key": "your_devto_api_key_here"
+   }
+   ```
+3. **Saved User Profile**:
+   If the user saved their API key in their CoreLink profile settings (`encrypted_devto_api_key`), the backend resolves it automatically when `Authorization: Bearer <auth_token>` is present.
 
-> **How to get a DEV.to API Key:**
+> **How users get their DEV.to API Key:**
 > 1. Log in to [DEV.to](https://dev.to).
 > 2. Go to **Settings** -> **Extensions**.
 > 3. Scroll down to **DEV Community API Keys**.
-> 4. Generate a new API key and copy it.
+> 4. Generate a new API key and copy it into the CoreLink frontend input.
 
 ---
 
@@ -70,10 +73,10 @@ CoreLink gives you full control over how and where content is published:
 ## 3. DEV.to Direct API Endpoints (`/api/devto`)
 
 ### `GET /api/devto/me`
-Validates the configured API key and returns authenticated DEV.to profile details.
+Validates the user's DEV.to API key and returns authenticated DEV.to profile details.
 
 - **Headers**:
-  - `x-devto-api-key` (Optional if `DEVTO_API_KEY` is in `.env`)
+  - `x-devto-api-key: <user_api_key>` (**Required**)
   - `Authorization: Bearer <jwt_token>` (Optional)
 
 **Response `200 OK`**:
@@ -103,7 +106,7 @@ Publishes or drafts an article directly on DEV.to according to Forem API specifi
 - **URL Alias**: `POST /api/devto/publish`
 - **Headers**:
   - `Content-Type: application/json`
-  - `x-devto-api-key: <api_key>` (Optional if in `.env`)
+  - `x-devto-api-key: <user_api_key>` (**Required**)
   - `Authorization: Bearer <jwt>` (Optional; if present, automatically saves a copy in CoreLink posts history)
 
 **Request Body**:
@@ -334,3 +337,26 @@ CREATE INDEX IF NOT EXISTS idx_posts_devto_article_id
 CREATE INDEX IF NOT EXISTS idx_posts_platforms 
     ON public.posts USING GIN(platforms);
 ```
+
+---
+
+## 7. Postman & API Collections
+
+All DEV.to and multi-platform publishing endpoints are included in the repository Postman collection:
+
+- **Collection**: [`postman/Corelink_Backend_API_Collection.json`](./postman/Corelink_Backend_API_Collection.json)
+  - Folder **`7. DEV.to Articles & Community Publishing`**:
+    - `7.1 Verify DEV.to API Key & Profile`
+    - `7.2 Direct Create / Publish DEV.to Article`
+    - `7.3 List My DEV.to Articles`
+    - `7.4 Get Single DEV.to Article by ID`
+    - `7.5 Update DEV.to Article`
+    - `7.6 Cross-post CoreLink Post to DEV.to`
+  - Folder **`4. Publishing Pipeline & Cloudflare Cron Engine`**:
+    - `4.2B Instant Publish to LinkedIn Only`
+    - `4.2C Instant Publish to DEV.to Only`
+    - `4.2D Instant Publish to Both (LinkedIn & DEV.to)`
+    - `4.2E Cross-post Existing Post to DEV.to`
+- **Environment**: [`postman/Corelink_Backend_Environment.json`](./postman/Corelink_Backend_Environment.json)
+  - Configure `{{devto_api_key}}` in the Postman environment to automatically authenticate all requests.
+

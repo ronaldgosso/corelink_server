@@ -46,9 +46,8 @@ export const config = {
     upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN || '',
   },
 
-  // DEV.to Configuration
+  // DEV.to Configuration (User API keys provided per-request from frontend)
   devto: {
-    apiKey: process.env.DEVTO_API_KEY || '',
     apiUrl: process.env.DEVTO_API_URL || 'https://dev.to/api',
   },
 };

@@ -193,13 +193,15 @@ infisical secrets set --file=.env --env=prod
 infisical secrets set --file=.env --env=staging
 ```
 
-This automatically creates any missing keys (such as `DEVTO_API_KEY`, `DEVTO_API_URL`), updates modified secrets, and preserves unchanged values.
+This automatically creates any missing keys, updates modified secrets, and preserves unchanged values.
+
+> **Note on Client / User API Keys:** User-specific keys (such as individual DEV.to API keys) are supplied per-request from the client frontend via HTTP headers (`x-devto-api-key`) and are not stored in shared server environment secrets.
 
 #### 2. Manual / Single Secret Upload
 - **Via CLI (Iterative upload):**
   ```bash
   # Set a single secret
-  infisical secrets set DEVTO_API_KEY="your_api_key" --env=dev
+  infisical secrets set MISTRAL_API_KEY="your_api_key" --env=dev
 
   # Set multiple secrets
   infisical secrets set PORT=5000 JWT_SECRET="super-secret-key" --env=dev
@@ -214,7 +216,7 @@ This automatically creates any missing keys (such as `DEVTO_API_KEY`, `DEVTO_API
 infisical secrets --env=dev
 
 # Get a specific secret value
-infisical secrets get DEVTO_API_KEY --env=dev
+infisical secrets get MISTRAL_API_KEY --env=dev
 
 # Delete a secret
 infisical secrets delete UNUSED_KEY --env=dev

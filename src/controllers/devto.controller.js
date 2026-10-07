@@ -62,7 +62,7 @@ export const handleCreateDevToArticle = async (req, res) => {
       return res.status(400).json({
         success: false,
         error:
-          'DEV.to API key is required. Set DEVTO_API_KEY in .env, send header "x-devto-api-key", or include "devto_api_key" in request body.',
+          'DEV.to API key is required. Please pass your DEV.to API key via the "x-devto-api-key" header or "devto_api_key" in request body.',
       });
     }
 
@@ -181,7 +181,7 @@ export const handleGetDevToArticles = async (req, res) => {
       return res.status(400).json({
         success: false,
         error:
-          'DEV.to API key is required. Provide DEVTO_API_KEY in .env, "x-devto-api-key" header, or "?devto_api_key" query parameter.',
+          'DEV.to API key is required. Please pass your DEV.to API key via the "x-devto-api-key" header or "?devto_api_key" query parameter.',
       });
     }
 
@@ -309,7 +309,7 @@ export const handleGetDevToProfile = async (req, res) => {
       return res.status(400).json({
         success: false,
         error:
-          'DEV.to API key is required. Set DEVTO_API_KEY in .env, send header "x-devto-api-key", or pass "?devto_api_key" parameter.',
+          'DEV.to API key is required. Please pass your DEV.to API key via the "x-devto-api-key" header or "?devto_api_key" query parameter.',
       });
     }
 

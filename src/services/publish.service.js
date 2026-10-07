@@ -123,7 +123,7 @@ export class PublishService {
 
         if (!resolvedKey) {
           throw new Error(
-            'DEV.to API key is not configured. Provide it in .env (DEVTO_API_KEY), pass via "x-devto-api-key" header, or provide "devto_api_key" in body.'
+            'DEV.to API key is required. Please provide your DEV.to API key from the frontend via the "x-devto-api-key" header or "devto_api_key" in request body.'
           );
         }
 

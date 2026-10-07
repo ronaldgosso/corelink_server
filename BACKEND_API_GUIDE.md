@@ -288,10 +288,20 @@ CREATE POLICY "Users can delete own posts" ON posts FOR DELETE USING (auth.uid()
 - **Collection:** [`postman/Corelink_Backend_API_Collection.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/Corelink_Backend_API_Collection.json)
 - **Environment:** [`postman/Corelink_Backend_Environment.json`](file:///c:/Users/Neptune/Documents/Projects/corelink_server/postman/Corelink_Backend_Environment.json)
 
+### Collection Folders
+1. **1. Authentication & User Profile**: LinkedIn OAuth, dev login, `/auth/me`, disconnect.
+2. **2. AI Post Generation (CoreLink AI Engine)**: Topic drafting, tone selection.
+3. **3. Posts & Scheduling Management (Supabase CRUD)**: Post creation, multi-platform scheduling (`platforms: ["linkedin", "devto"]`), updates, deletions, stats.
+4. **4. Publishing Pipeline & Cloudflare Cron Engine**: Cron batch runner, instant publish (`publish-now`, `publish-linkedin`, `publish-devto`, `publish-both`, `crosspost-devto`).
+5. **5. System & Health**: Health check, Redis status.
+6. **6. LinkedIn Analytics & Engagement Metrics**: Real-time sync, post analytics, time series.
+7. **7. DEV.to Articles & Community Publishing**: Direct DEV.to article publishing, user article listing, article updates, and profile check using caller's `x-devto-api-key`.
+
 ### Importing
 
 1. **Postman**: Click **Import** -> Select both JSON files -> Select **Corelink Backend API - Environment**.
-2. **Hoppscotch**: Import Collection (v2.1) + Import Environment -> Set active.
+2. **Environment Configuration**: Set `{{auth_token}}` after login and `{{devto_api_key}}` to authenticate DEV.to requests.
+3. **Hoppscotch**: Import Collection (v2.1) + Import Environment -> Set active.
 
 ---
 
@@ -534,19 +544,19 @@ Background cron worker endpoint (Requires `Authorization: Bearer <CRON_SECRET>`)
 
 ## 5. DEV.to Community Articles (`/api/devto`)
 
-CoreLink integrates with the **DEV.to (Forem API)** allowing direct article creation, drafting, updates, and cross-posting between LinkedIn and DEV.to:
+CoreLink integrates with the **DEV.to (Forem API)** allowing direct article creation, drafting, updates, and cross-posting between LinkedIn and DEV.to. **Each user provides their personal DEV.to API key from the frontend via the `x-devto-api-key` header:**
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/devto/me` | Validates API key and returns authenticated DEV.to profile |
-| `GET` | `/api/devto/articles` | List user articles (`?page=1&per_page=30&state=all\|published\|unpublished`) |
-| `POST` | `/api/devto/articles` | Create or publish article directly on DEV.to (`published: true\|false`) |
-| `POST` | `/api/devto/publish` | Alias for `/api/devto/articles` |
-| `GET` | `/api/devto/articles/:id` | Get single DEV.to article by ID |
-| `PUT` | `/api/devto/articles/:id` | Update an existing article on DEV.to |
-| `POST` | `/api/devto/crosspost/:id` | Cross-post an existing CoreLink post to DEV.to |
+| Method | Endpoint | Required Headers | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/devto/me` | `x-devto-api-key` | Validates API key and returns authenticated DEV.to profile |
+| `GET` | `/api/devto/articles` | `x-devto-api-key` | List user articles (`?page=1&per_page=30&state=all\|published\|unpublished`) |
+| `POST` | `/api/devto/articles` | `x-devto-api-key` | Create or publish article directly on DEV.to (`published: true\|false`) |
+| `POST` | `/api/devto/publish` | `x-devto-api-key` | Alias for `/api/devto/articles` |
+| `GET` | `/api/devto/articles/:id` | `x-devto-api-key` | Get single DEV.to article by ID |
+| `PUT` | `/api/devto/articles/:id` | `x-devto-api-key` | Update an existing article on DEV.to |
+| `POST` | `/api/devto/crosspost/:id` | `x-devto-api-key`, `Authorization: Bearer <jwt>` | Cross-post an existing CoreLink post to DEV.to |
 
-For complete documentation on request bodies, cross-posting options, and API key configuration, see [DEVTO_API_GUIDE.md](./DEVTO_API_GUIDE.md).
+Pre-configured requests are ready in [`postman/Corelink_Backend_API_Collection.json`](./postman/Corelink_Backend_API_Collection.json) under **Folder 7**. For complete documentation on request bodies and cross-posting workflows, see [DEVTO_API_GUIDE.md](./DEVTO_API_GUIDE.md).
 
 ---
 

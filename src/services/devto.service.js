@@ -3,12 +3,11 @@ import { decrypt } from '../utils/crypto.js';
 
 export class DevToService {
   /**
-   * Resolves the DEV.to API key hierarchically:
+   * Resolves the user's DEV.to API key:
    * 1. Explicitly provided apiKey argument
    * 2. Request header (x-devto-api-key or devto-api-key)
-   * 3. Request body (devto_api_key or devtoApiKey)
+   * 3. Request body or query (devto_api_key or devtoApiKey)
    * 4. User profile in database (decrypted encrypted_devto_api_key)
-   * 5. Environment configuration (config.devto.apiKey / DEVTO_API_KEY)
    */
   static resolveApiKey({ apiKey = null, req = null, userProfile = null } = {}) {
     if (apiKey && typeof apiKey === 'string' && apiKey.trim().length > 0) {
@@ -36,10 +35,6 @@ export class DevToService {
       } catch (err) {
         console.warn('[DEV.to] Failed to decrypt user stored Dev.to API key:', err.message);
       }
-    }
-
-    if (config.devto?.apiKey && config.devto.apiKey.trim().length > 0) {
-      return config.devto.apiKey.trim();
     }
 
     return null;
@@ -171,7 +166,7 @@ export class DevToService {
   }) {
     if (!apiKey) {
       throw new Error(
-        'DEV.to API key is required. Set DEVTO_API_KEY in .env, pass via "x-devto-api-key" header, or include "devto_api_key" in request.'
+        'DEV.to API key is required. Please provide your DEV.to API key via the "x-devto-api-key" header or "devto_api_key" in request body.'
       );
     }
 

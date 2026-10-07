@@ -5,9 +5,10 @@
  * @param {string} [cronPattern='* /10 * * * *'] - Cron schedule pattern
  * @returns {Promise<object>} Execution report
  */
-async function dispatchPublishingJob(env, triggerSource, cronPattern = '*/10 * * * *') {
+async function dispatchPublishingJob(env, triggerSource, cronPattern = '*/10 * * * *', options = {}) {
   const startTime = Date.now();
-  const batchSize = parseInt(env.BATCH_SIZE || '10', 10);
+  const batchSize = parseInt(options.batchSize || env.BATCH_SIZE || '10', 10);
+  const target = options.target || 'auto'; // 'auto', 'devto', 'linkedin', 'both'
   const maxRetries = parseInt(env.MAX_RETRIES || '2', 10);
   const timeoutMs = parseInt(env.TIMEOUT_MS || '15000', 10);
   const targetUrl = `${env.BACKEND_API_URL.replace(/\/$/, '')}/api/publish`;
@@ -15,6 +16,7 @@ async function dispatchPublishingJob(env, triggerSource, cronPattern = '*/10 * *
   const report = {
     timestamp: new Date().toISOString(),
     cronPattern: triggerSource === 'cron' ? cronPattern : `manual_http (${triggerSource})`,
+    target,
     durationMs: 0,
     success: false,
   };
@@ -35,7 +37,7 @@ async function dispatchPublishingJob(env, triggerSource, cronPattern = '*/10 * *
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      console.log(`[CRON DISPATCH] (${triggerSource}) Attempt ${attempt}/${maxRetries + 1} -> ${targetUrl}`);
+      console.log(`[CRON DISPATCH] (${triggerSource}) Attempt ${attempt}/${maxRetries + 1} -> ${targetUrl} [target=${target}]`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -45,7 +47,7 @@ async function dispatchPublishingJob(env, triggerSource, cronPattern = '*/10 * *
           'User-Agent': 'Corelink-Cloudflare-Cron-Worker/1.0',
           'X-Trigger-Source': triggerSource,
         },
-        body: JSON.stringify({ batchSize }),
+        body: JSON.stringify({ batchSize, target }),
         signal: controller.signal,
       });
 
@@ -62,8 +64,13 @@ async function dispatchPublishingJob(env, triggerSource, cronPattern = '*/10 * *
       report.responsePayload = jsonResponse;
       report.durationMs = Date.now() - startTime;
 
+      const totalClaimed = jsonResponse.totalClaimed ?? jsonResponse.processed ?? 0;
+      const succeeded = jsonResponse.succeeded ?? 0;
+      const liCount = jsonResponse.linkedinDispatched ?? 0;
+      const devtoCount = jsonResponse.devtoDispatched ?? 0;
+
       console.log(
-        `[CRON SUCCESS] Processed ${jsonResponse.processed ?? 0} posts in ${report.durationMs}ms.`
+        `[CRON SUCCESS] Processed ${totalClaimed} posts (Succeeded: ${succeeded}, LinkedIn: ${liCount}, DEV.to: ${devtoCount}) in ${report.durationMs}ms.`
       );
       return report;
     } catch (err) {
@@ -148,7 +155,18 @@ export default {
         );
       }
 
-      const report = await dispatchPublishingJob(env, 'manual_http');
+      let triggerOptions = {};
+      try {
+        triggerOptions = await request.json();
+      } catch (_) {
+        // Query param fallback
+        const qTarget = url.searchParams.get('target');
+        const qBatch = url.searchParams.get('batchSize') || url.searchParams.get('batch_limit');
+        if (qTarget) triggerOptions.target = qTarget;
+        if (qBatch) triggerOptions.batchSize = qBatch;
+      }
+
+      const report = await dispatchPublishingJob(env, 'manual_http', 'manual', triggerOptions);
       return new Response(JSON.stringify(report, null, 2), {
         status: report.success ? 200 : 502,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },

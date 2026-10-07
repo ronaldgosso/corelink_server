@@ -242,14 +242,16 @@ export const handlePublishToBoth = async (req, res) => {
  */
 export const handleCronPublishQueue = async (req, res) => {
   try {
-    const queryLimit = req.query?.batch_limit;
-    const bodyLimit = req.body?.batch_limit;
+    const queryLimit = req.query?.batch_limit || req.query?.batchSize;
+    const bodyLimit = req.body?.batch_limit || req.body?.batchSize;
+    const target = req.query?.target || req.body?.target || 'auto';
     const batchLimit = parseInt(queryLimit || bodyLimit || '10', 10);
 
     lastWorkerRunAt = new Date().toISOString();
 
     const summary = await PublishService.processCronPublishingQueue({
       batchLimit,
+      target,
     });
 
     return res.status(200).json({

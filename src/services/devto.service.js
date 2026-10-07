@@ -1,5 +1,6 @@
 import { config } from '../config/env.js';
-import { decrypt } from '../utils/crypto.js';
+import { decrypt, encrypt } from '../utils/crypto.js';
+import { supabaseAdmin } from '../config/supabase.js';
 
 export class DevToService {
   /**
@@ -441,4 +442,109 @@ export class DevToService {
       organizationId: articlePayload.organization_id,
     });
   }
+
+  /**
+   * Connects and verifies a user's DEV.to API key, persisting it securely (AES-256 encrypted) in profiles.
+   */
+  static async connectUserApiKey({ userId, apiKey }) {
+    if (!userId) {
+      throw new Error('User ID is required to connect DEV.to.');
+    }
+    if (!apiKey || typeof apiKey !== 'string' || apiKey.trim().length === 0) {
+      throw new Error('DEV.to API key is required. Please pass your DEV.to API key in App Settings.');
+    }
+
+    const cleanKey = apiKey.trim();
+
+    // 1. Verify key with DEV.to API
+    const profile = await this.getProfile({ apiKey: cleanKey });
+
+    // 2. Encrypt API key
+    const encryptedKey = encrypt(cleanKey);
+
+    // 3. Persist into profiles table
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        encrypted_devto_api_key: encryptedKey,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('[DevToService] Failed to persist encrypted DEV.to API key:', error);
+      throw new Error(`Failed to save DEV.to credentials: ${error.message}`);
+    }
+
+    return {
+      connected: true,
+      profile,
+      message: `DEV.to account connected successfully as @${profile.username}`,
+    };
+  }
+
+  /**
+   * Disconnects a user's DEV.to account by removing encrypted key from profiles.
+   */
+  static async disconnectUserApiKey({ userId }) {
+    if (!userId) {
+      throw new Error('User ID is required to disconnect DEV.to.');
+    }
+
+    const { error } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        encrypted_devto_api_key: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('[DevToService] Failed to clear encrypted DEV.to API key:', error);
+      throw new Error(`Failed to disconnect DEV.to account: ${error.message}`);
+    }
+
+    return {
+      connected: false,
+      message: 'DEV.to account disconnected successfully.',
+    };
+  }
+
+  /**
+   * Retrieves DEV.to connection status for a user.
+   */
+  static async getConnectionStatus({ userId }) {
+    if (!userId) {
+      return { connected: false, profile: null };
+    }
+
+    const { data: profileRow, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, encrypted_devto_api_key')
+      .eq('id', userId)
+      .single();
+
+    if (error || !profileRow?.encrypted_devto_api_key) {
+      return { connected: false, profile: null };
+    }
+
+    try {
+      const apiKey = decrypt(profileRow.encrypted_devto_api_key);
+      if (!apiKey) return { connected: false, profile: null };
+
+      const devtoProfile = await this.getProfile({ apiKey });
+      return {
+        connected: true,
+        profile: devtoProfile,
+      };
+    } catch (err) {
+      console.warn('[DevToService] Stored DEV.to key verification error:', err.message);
+      return {
+        connected: false,
+        profile: null,
+        error: err.message,
+      };
+    }
+  }
 }
+

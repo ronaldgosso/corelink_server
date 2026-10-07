@@ -285,11 +285,14 @@ export class PublishService {
   /**
    * Batch processes scheduled posts due across LinkedIn & DEV.to
    */
-  static async processCronPublishingQueue({ batchLimit = 10 }) {
+  static async processCronPublishingQueue({ batchLimit = 10, target = 'auto' } = {}) {
     const results = {
       totalClaimed: 0,
       succeeded: 0,
       failed: 0,
+      partialFailed: 0,
+      linkedinDispatched: 0,
+      devtoDispatched: 0,
       details: [],
     };
 
@@ -322,19 +325,31 @@ export class PublishService {
         const pubResult = await this.publishPost({
           userId: post.user_id,
           postId: post.id,
-          target: 'auto',
+          target,
         });
 
         if (pubResult.success) {
           results.succeeded++;
+          if (pubResult.partialFailure) {
+            results.partialFailed++;
+          }
         } else {
           results.failed++;
+        }
+
+        if (pubResult.results?.linkedin?.success) {
+          results.linkedinDispatched++;
+        }
+        if (pubResult.results?.devto?.success) {
+          results.devtoDispatched++;
         }
 
         results.details.push({
           postId: post.id,
           success: pubResult.success,
+          partialFailure: pubResult.partialFailure,
           targets: pubResult.targets,
+          results: pubResult.results,
         });
       } catch (err) {
         results.failed++;

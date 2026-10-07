@@ -370,3 +370,87 @@ export const handleCrossPostToDevTo = async (req, res) => {
     });
   }
 };
+
+/**
+ * Connects and verifies user's DEV.to personal API key, persisting it in profile
+ * Endpoint: POST /api/devto/connect
+ */
+export const handleConnectDevTo = async (req, res) => {
+  try {
+    const apiKey = req.body?.apiKey || req.body?.api_key || req.body?.devto_api_key || req.headers['x-devto-api-key'];
+
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'DEV.to API key is required. Please pass your DEV.to API key in App Settings.',
+      });
+    }
+
+    const result = await DevToService.connectUserApiKey({
+      userId: req.user.id,
+      apiKey,
+    });
+
+    return res.status(200).json({
+      success: true,
+      source: 'DEV_TO',
+      ...result,
+      data: result.profile,
+    });
+  } catch (error) {
+    console.error('Connect DEV.to error:', error);
+    return res.status(400).json({
+      success: false,
+      error: error.message || 'Failed to connect DEV.to account',
+    });
+  }
+};
+
+/**
+ * Disconnects user's DEV.to account
+ * Endpoint: DELETE /api/devto/disconnect
+ */
+export const handleDisconnectDevTo = async (req, res) => {
+  try {
+    const result = await DevToService.disconnectUserApiKey({
+      userId: req.user.id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      source: 'DEV_TO',
+      ...result,
+    });
+  } catch (error) {
+    console.error('Disconnect DEV.to error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to disconnect DEV.to account',
+    });
+  }
+};
+
+/**
+ * Retrieves DEV.to connection status for authenticated user
+ * Endpoint: GET /api/devto/status
+ */
+export const handleGetConnectionStatus = async (req, res) => {
+  try {
+    const result = await DevToService.getConnectionStatus({
+      userId: req.user.id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      source: 'DEV_TO',
+      ...result,
+    });
+  } catch (error) {
+    console.error('Get DEV.to status error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to retrieve DEV.to status',
+    });
+  }
+};
+

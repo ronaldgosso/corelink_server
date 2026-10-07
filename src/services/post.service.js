@@ -443,11 +443,16 @@ export class PostService {
     const hasDevto = Boolean(post.devto_article_id || post.devto_url || post.devtoArticleId || post.devtoUrl);
     const hasLinkedin = Boolean(post.linkedin_post_urn || post.linkedinPostUrn);
     let resolvedPlatforms = post.platforms;
+
     if (hasDevto && !hasLinkedin) {
       resolvedPlatforms = ['devto'];
     } else if (hasDevto && hasLinkedin) {
       resolvedPlatforms = ['linkedin', 'devto'];
-    } else if (!resolvedPlatforms || resolvedPlatforms.length === 0) {
+    } else if (hasLinkedin && !hasDevto) {
+      resolvedPlatforms = ['linkedin'];
+    } else if (resolvedPlatforms && (Array.isArray(resolvedPlatforms) ? resolvedPlatforms.length > 0 : Boolean(resolvedPlatforms))) {
+      resolvedPlatforms = this.normalizePlatforms(resolvedPlatforms);
+    } else {
       resolvedPlatforms = ['linkedin'];
     }
 

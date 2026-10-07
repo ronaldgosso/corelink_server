@@ -80,6 +80,71 @@ CoreLink gives you full control over how and where content is published:
 
 ## 3. DEV.to Direct API Endpoints (`/api/devto`)
 
+### `POST /api/devto/connect`
+Verifies and connects the user's DEV.to API key, encrypting and storing it in `public.profiles` (`encrypted_devto_api_key`) so that **scheduled posts publish automatically via Cloudflare Worker cron jobs** even when the user is offline.
+
+- **Headers**:
+  - `Authorization: Bearer <jwt_token>` (**Required**)
+- **Request Body**:
+  ```json
+  {
+    "apiKey": "your_devto_api_key_here"
+  }
+  ```
+
+**Response `200 OK`**:
+```json
+{
+  "success": true,
+  "source": "DEV_TO",
+  "connected": true,
+  "profile": {
+    "id": 123456,
+    "username": "janedoe",
+    "name": "Jane Doe"
+  },
+  "message": "DEV.to account connected successfully as @janedoe"
+}
+```
+
+---
+
+### `DELETE /api/devto/disconnect`
+Removes the stored encrypted DEV.to API key from the user's profile.
+
+- **Headers**:
+  - `Authorization: Bearer <jwt_token>` (**Required**)
+
+**Response `200 OK`**:
+```json
+{
+  "success": true,
+  "source": "DEV_TO",
+  "connected": false,
+  "message": "DEV.to account disconnected successfully."
+}
+```
+
+---
+
+### `GET /api/devto/status`
+Checks if the authenticated user has a DEV.to API key connected and verified in their profile.
+
+- **Headers**:
+  - `Authorization: Bearer <jwt_token>` (**Required**)
+
+**Response `200 OK`**:
+```json
+{
+  "success": true,
+  "source": "DEV_TO",
+  "connected": true,
+  "profile": { ... }
+}
+```
+
+---
+
 ### `GET /api/devto/me`
 Validates the user's DEV.to API key and returns authenticated DEV.to profile details.
 

@@ -6,10 +6,18 @@ import {
   handleUpdateDevToArticle,
   handleGetDevToProfile,
   handleCrossPostToDevTo,
+  handleConnectDevTo,
+  handleDisconnectDevTo,
+  handleGetConnectionStatus,
 } from '../controllers/devto.controller.js';
 import { requireAuth, optionalAuth } from '../middlewares/auth.middleware.js';
 
 const router = Router();
+
+// Account Connection & Credential Vault (requires user authentication)
+router.post('/connect', requireAuth, handleConnectDevTo);
+router.delete('/disconnect', requireAuth, handleDisconnectDevTo);
+router.get('/status', requireAuth, handleGetConnectionStatus);
 
 // Verify DEV.to API key & profile
 router.get('/me', optionalAuth, handleGetDevToProfile);
@@ -31,3 +39,4 @@ router.put('/articles/:id', optionalAuth, handleUpdateDevToArticle);
 router.post('/crosspost/:id', requireAuth, handleCrossPostToDevTo);
 
 export default router;
+

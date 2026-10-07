@@ -12,7 +12,14 @@ import {
   handleGetPostAnalytics,
   handleForceSyncPostAnalytics,
 } from '../controllers/analytics.controller.js';
-import { handlePublishPostNow, getScheduleWindow } from '../controllers/publish.controller.js';
+import {
+  handlePublishPostNow,
+  handlePublishToLinkedIn,
+  handlePublishToDevTo,
+  handlePublishToBoth,
+  getScheduleWindow,
+} from '../controllers/publish.controller.js';
+import { handleCrossPostToDevTo } from '../controllers/devto.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -28,8 +35,12 @@ router.get('/schedule-window', getScheduleWindow);
 router.get('/', handleGetPosts);
 router.post('/', handleCreatePost);
 
-// Immediate publish to LinkedIn
+// Immediate publish endpoints (LinkedIn, DEV.to, or Both)
 router.post('/:id/publish-now', handlePublishPostNow);
+router.post('/:id/publish-linkedin', handlePublishToLinkedIn);
+router.post('/:id/publish-devto', handlePublishToDevTo);
+router.post('/:id/publish-both', handlePublishToBoth);
+router.post('/:id/crosspost-devto', handleCrossPostToDevTo);
 
 // Single post operations
 router.get('/:id', handleGetPostById);

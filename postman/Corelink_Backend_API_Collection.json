@@ -428,6 +428,45 @@
           "response": []
         },
         {
+          "name": "3.1B Create Scheduled Multi-Platform Post (LinkedIn + DEV.to)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"# Building with CoreLink\\n\\nCross-posting seamlessly between professional networks and developer communities.\",\n  \"scheduled_at\": \"2026-10-07T15:18:13.059Z\",\n  \"platforms\": [\n    \"linkedin\",\n    \"devto\"\n  ],\n  \"devto_title\": \"Building with CoreLink: Multi-Platform Publishing\",\n  \"devto_tags\": [\n    \"nodejs\",\n    \"webdev\",\n    \"opensource\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts"
+              ]
+            },
+            "description": "Schedules a post intended for both LinkedIn and DEV.to."
+          },
+          "response": []
+        },
+        {
           "name": "3.2 List Scheduled Posts & Drafts",
           "request": {
             "method": "GET",
@@ -762,6 +801,147 @@
               "body": "{\n  \"success\": true,\n  \"source\": \"REDIS\",\n  \"server_time\": \"2026-09-06T10:40:00.000Z\",\n  \"last_worker_run\": \"2026-09-06T10:30:00.000Z\",\n  \"cadence_minutes\": 10,\n  \"next_dispatch_window\": \"2026-09-06T10:40:00.000Z\",\n  \"suggested_scheduled_at\": \"2026-09-06T10:50:00.000Z\",\n  \"local_next_window\": \"13:40\",\n  \"local_suggested_window\": \"13:50\"\n}"
             }
           ]
+        },
+        {
+          "name": "4.2B Instant Publish to LinkedIn Only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/publish-linkedin",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "{{post_id}}",
+                "publish-linkedin"
+              ]
+            },
+            "description": "Publishes a specific post immediately and exclusively to LinkedIn."
+          },
+          "response": []
+        },
+        {
+          "name": "4.2C Instant Publish to DEV.to Only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Article Title on DEV.to\",\n  \"tags\": [\n    \"nodejs\",\n    \"webdev\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/publish-devto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "{{post_id}}",
+                "publish-devto"
+              ]
+            },
+            "description": "Publishes a specific post immediately and exclusively to DEV.to using the user API key."
+          },
+          "response": []
+        },
+        {
+          "name": "4.2D Instant Publish to Both (LinkedIn & DEV.to)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/publish-both",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "{{post_id}}",
+                "publish-both"
+              ]
+            },
+            "description": "Publishes a specific post simultaneously to both LinkedIn and DEV.to."
+          },
+          "response": []
+        },
+        {
+          "name": "4.2E Cross-post Existing Post to DEV.to",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Custom DEV.to Title\",\n  \"tags\": [\n    \"productivity\",\n    \"coding\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/posts/{{post_id}}/crosspost-devto",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "posts",
+                "{{post_id}}",
+                "crosspost-devto"
+              ]
+            },
+            "description": "Cross-posts an existing post to DEV.to with optional title and tag overrides."
+          },
+          "response": []
         }
       ]
     },
@@ -979,6 +1159,231 @@
               "body": "{\n  \"success\": true,\n  \"source\": \"SUPABASE\",\n  \"timestamp\": \"2026-09-06T11:45:00.000Z\",\n  \"totalClaimed\": 8,\n  \"synced\": 8,\n  \"failed\": 0,\n  \"details\": []\n}"
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "7. DEV.to Articles & Community Publishing",
+      "item": [
+        {
+          "name": "7.1 Verify DEV.to API Key & Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/devto/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devto",
+                "me"
+              ]
+            },
+            "description": "Validates the user DEV.to API key and returns their profile details."
+          },
+          "response": []
+        },
+        {
+          "name": "7.2 Direct Create / Publish DEV.to Article",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Building Scalable APIs with Node.js\",\n  \"body_markdown\": \"# Building Scalable APIs with Node.js\\n\\nIn this article, we cover clean architecture patterns...\",\n  \"published\": true,\n  \"tags\": [\n    \"nodejs\",\n    \"webdev\",\n    \"backend\"\n  ],\n  \"save_to_corelink\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/devto/articles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devto",
+                "articles"
+              ]
+            },
+            "description": "Publishes an article directly to DEV.to with the user API key, and optionally saves a copy in CoreLink."
+          },
+          "response": []
+        },
+        {
+          "name": "7.3 List My DEV.to Articles",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/devto/articles?state=all&page=1&per_page=30",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devto",
+                "articles"
+              ],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "30"
+                }
+              ]
+            },
+            "description": "Retrieves all published and draft articles for the user on DEV.to."
+          },
+          "response": []
+        },
+        {
+          "name": "7.4 Get Single DEV.to Article by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/devto/articles/{{devto_article_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devto",
+                "articles",
+                "{{devto_article_id}}"
+              ]
+            },
+            "description": "Fetches details of a specific DEV.to article by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "7.5 Update DEV.to Article",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Article Title\",\n  \"body_markdown\": \"# Updated Article Content\\n\\nNew paragraphs...\",\n  \"published\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/devto/articles/{{devto_article_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devto",
+                "articles",
+                "{{devto_article_id}}"
+              ]
+            },
+            "description": "Updates an existing article on DEV.to."
+          },
+          "response": []
+        },
+        {
+          "name": "7.6 Cross-post CoreLink Post to DEV.to",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "x-devto-api-key",
+                "value": "{{devto_api_key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cross-posted Article Title\",\n  \"tags\": [\n    \"tech\",\n    \"career\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/devto/crosspost/{{post_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "devto",
+                "crosspost",
+                "{{post_id}}"
+              ]
+            },
+            "description": "Cross-posts an existing CoreLink scheduled or published post to DEV.to."
+          },
+          "response": []
         }
       ]
     }

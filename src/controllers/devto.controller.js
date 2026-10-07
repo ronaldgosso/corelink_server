@@ -61,8 +61,7 @@ export const handleCreateDevToArticle = async (req, res) => {
     if (!apiKey) {
       return res.status(400).json({
         success: false,
-        error:
-          'DEV.to API key is required. Please pass your DEV.to API key via the "x-devto-api-key" header or "devto_api_key" in request body.',
+        error: 'DEV.to API key is required. Please pass your DEV.to API key in App Settings.',
       });
     }
 
@@ -180,8 +179,7 @@ export const handleGetDevToArticles = async (req, res) => {
     if (!apiKey) {
       return res.status(400).json({
         success: false,
-        error:
-          'DEV.to API key is required. Please pass your DEV.to API key via the "x-devto-api-key" header or "?devto_api_key" query parameter.',
+        error: 'DEV.to API key is required. Please pass your DEV.to API key in App Settings.',
       });
     }
 
@@ -259,7 +257,7 @@ export const handleUpdateDevToArticle = async (req, res) => {
     if (!apiKey) {
       return res.status(400).json({
         success: false,
-        error: 'DEV.to API key is required.',
+        error: 'DEV.to API key is required. Please pass your DEV.to API key in App Settings.',
       });
     }
 
@@ -308,8 +306,7 @@ export const handleGetDevToProfile = async (req, res) => {
     if (!apiKey) {
       return res.status(400).json({
         success: false,
-        error:
-          'DEV.to API key is required. Please pass your DEV.to API key via the "x-devto-api-key" header or "?devto_api_key" query parameter.',
+        error: 'DEV.to API key is required. Please pass your DEV.to API key in App Settings.',
       });
     }
 

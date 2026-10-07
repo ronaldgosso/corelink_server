@@ -166,7 +166,7 @@ export class DevToService {
   }) {
     if (!apiKey) {
       throw new Error(
-        'DEV.to API key is required. Please provide your DEV.to API key via the "x-devto-api-key" header or "devto_api_key" in request body.'
+        'DEV.to API key is required. Please pass your DEV.to API key in App Settings.'
       );
     }
 
@@ -262,7 +262,7 @@ export class DevToService {
    */
   static async updateArticle({ apiKey, articleId, articleData }) {
     if (!apiKey) {
-      throw new Error('DEV.to API key is required.');
+      throw new Error('DEV.to API key is required. Please pass your DEV.to API key in App Settings.');
     }
     if (!articleId) {
       throw new Error('DEV.to article ID is required for update.');
@@ -343,7 +343,7 @@ export class DevToService {
    */
   static async getUserArticles({ apiKey, page = 1, perPage = 30, state = 'all' }) {
     if (!apiKey) {
-      throw new Error('DEV.to API key is required to fetch user articles.');
+      throw new Error('DEV.to API key is required. Please pass your DEV.to API key in App Settings.');
     }
 
     const apiUrl = config.devto?.apiUrl || 'https://dev.to/api';
@@ -387,7 +387,7 @@ export class DevToService {
    */
   static async getProfile({ apiKey }) {
     if (!apiKey) {
-      throw new Error('DEV.to API key is required.');
+      throw new Error('DEV.to API key is required. Please pass your DEV.to API key in App Settings.');
     }
 
     const apiUrl = config.devto?.apiUrl || 'https://dev.to/api';

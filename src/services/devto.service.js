@@ -245,7 +245,7 @@ export class DevToService {
       canonicalUrl: data.canonical_url || null,
       slug: data.slug,
       path: data.path,
-      published: data.published,
+      published: data.published !== undefined ? Boolean(data.published) : Boolean(published),
       publishedAt: data.published_at || data.published_timestamp || new Date().toISOString(),
       commentsCount: data.comments_count || 0,
       reactionsCount: data.public_reactions_count || 0,
@@ -301,8 +301,8 @@ export class DevToService {
       id: data.id,
       title: data.title,
       url: data.url,
-      published: data.published,
-      publishedAt: data.published_at,
+      published: data.published !== undefined ? Boolean(data.published) : (articleData.published !== undefined ? Boolean(articleData.published) : true),
+      publishedAt: data.published_at || new Date().toISOString(),
       raw: data,
     };
   }

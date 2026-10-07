@@ -229,12 +229,15 @@ export const handleUpdatePost = async (req, res) => {
 export const handleDeletePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleteFromLinkedIn = req.query.deleteFromLinkedIn === 'true' || req.body?.deleteFromLinkedIn === true;
+    const deleteFromRemote = req.query.deleteFromRemote === 'true' || req.body?.deleteFromRemote === true;
+    const deleteFromLinkedIn = deleteFromRemote || req.query.deleteFromLinkedIn === 'true' || req.body?.deleteFromLinkedIn === true;
+    const deleteFromDevTo = deleteFromRemote || req.query.deleteFromDevTo === 'true' || req.body?.deleteFromDevTo === true;
 
     const result = await PostService.deletePost({
       userId: req.user.id,
       postId: id,
       deleteFromLinkedIn,
+      deleteFromDevTo,
     });
 
     // Invalidate cached post and listings

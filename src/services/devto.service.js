@@ -546,5 +546,104 @@ export class DevToService {
       };
     }
   }
+
+  /**
+   * Permanently deletes an article from DEV.to (DELETE /api/articles/:id)
+   */
+  static async deleteArticle({ apiKey, articleId }) {
+    if (!apiKey) {
+      throw new Error(
+        'DEV.to API key is required. Please pass your DEV.to API key in App Settings.'
+      );
+    }
+    if (!articleId) {
+      throw new Error('DEV.to article ID is required for deletion.');
+    }
+
+    const apiUrl = config.devto?.apiUrl || 'https://dev.to/api';
+    const response = await fetch(`${apiUrl}/articles/${articleId}`, {
+      method: 'DELETE',
+      headers: {
+        'api-key': apiKey,
+        'User-Agent': 'Corelink-Server/1.0',
+      },
+    });
+
+    if (response.status === 404) {
+      return { success: true, articleId, notFound: true };
+    }
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      let errorMsg;
+      try {
+        const data = JSON.parse(responseText);
+        errorMsg = data.error || data.message || `Status ${response.status}`;
+      } catch {
+        errorMsg = responseText || `Status ${response.status}`;
+      }
+      throw new Error(`DEV.to Article Deletion Failed (${response.status}): ${errorMsg}`);
+    }
+
+    return { success: true, articleId };
+  }
+
+  /**
+   * Retrieves live metrics (reactions, comments, page views) for an article from DEV.to (GET /api/articles/:id)
+   */
+  static async getArticleMetrics({ apiKey = null, articleId }) {
+    if (!articleId) {
+      throw new Error('DEV.to article ID is required to fetch metrics.');
+    }
+
+    const apiUrl = config.devto?.apiUrl || 'https://dev.to/api';
+    const headers = {
+      'User-Agent': 'Corelink-Server/1.0',
+    };
+    if (apiKey) {
+      headers['api-key'] = apiKey;
+    }
+
+    const response = await fetch(`${apiUrl}/articles/${articleId}`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`DEV.to Get Article Metrics Failed (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    const likes = Number(data.public_reactions_count ?? data.positive_reactions_count ?? 0);
+    const comments = Number(data.comments_count ?? 0);
+    const impressions = Number(data.page_views_count ?? 0);
+    const totalInteractions = likes + comments;
+    const engagementRate = impressions > 0
+      ? Number(((totalInteractions / impressions) * 100).toFixed(2))
+      : 0;
+
+    return {
+      isAvailable: true,
+      platform: 'devto',
+      articleId: data.id,
+      likes,
+      comments,
+      shares: 0,
+      impressions,
+      engagementRate,
+      reactionBreakdown: {
+        devto_reactions: likes,
+      },
+      raw: {
+        positive_reactions_count: data.positive_reactions_count,
+        public_reactions_count: data.public_reactions_count,
+        comments_count: data.comments_count,
+        page_views_count: data.page_views_count,
+        reading_time_minutes: data.reading_time_minutes,
+      },
+    };
+  }
 }
+
 

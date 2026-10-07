@@ -45,6 +45,12 @@ export const config = {
     upstashUrl: process.env.UPSTASH_REDIS_REST_URL || '',
     upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN || '',
   },
+
+  // DEV.to Configuration
+  devto: {
+    apiKey: process.env.DEVTO_API_KEY || '',
+    apiUrl: process.env.DEVTO_API_URL || 'https://dev.to/api',
+  },
 };
 
 /**

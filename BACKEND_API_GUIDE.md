@@ -15,8 +15,10 @@ This document describes the centralized **Backend for Frontend (BFF)** API archi
    - [2. AI Post Generation (`/api/generate`)](#2-ai-post-generation-apigenerate)
    - [3. Posts & Scheduling CRUD (`/api/posts`)](#3-posts--scheduling-crud-apiposts)
    - [4. Publishing Pipeline & Cron (`/api/publish`)](#4-publishing-pipeline--cron-apipublish)
-6. [Upstash Redis Caching Layer](#upstash-redis-caching-layer)
-7. [Database Migrations & DDL Updates](#database-migrations--ddl-updates)
+   - [5. DEV.to Community Articles (`/api/devto`)](#5-devto-community-articles-apidevto)
+6. [Multi-Platform Publishing (LinkedIn & DEV.to)](#multi-platform-publishing-linkedin--devto)
+7. [Upstash Redis Caching Layer](#upstash-redis-caching-layer)
+8. [Database Migrations & DDL Updates](#database-migrations--ddl-updates)
 
 ---
 
@@ -530,7 +532,41 @@ Background cron worker endpoint (Requires `Authorization: Bearer <CRON_SECRET>`)
 
 ---
 
-## 6. Upstash Redis Caching Layer
+## 5. DEV.to Community Articles (`/api/devto`)
+
+CoreLink integrates with the **DEV.to (Forem API)** allowing direct article creation, drafting, updates, and cross-posting between LinkedIn and DEV.to:
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/devto/me` | Validates API key and returns authenticated DEV.to profile |
+| `GET` | `/api/devto/articles` | List user articles (`?page=1&per_page=30&state=all\|published\|unpublished`) |
+| `POST` | `/api/devto/articles` | Create or publish article directly on DEV.to (`published: true\|false`) |
+| `POST` | `/api/devto/publish` | Alias for `/api/devto/articles` |
+| `GET` | `/api/devto/articles/:id` | Get single DEV.to article by ID |
+| `PUT` | `/api/devto/articles/:id` | Update an existing article on DEV.to |
+| `POST` | `/api/devto/crosspost/:id` | Cross-post an existing CoreLink post to DEV.to |
+
+For complete documentation on request bodies, cross-posting options, and API key configuration, see [DEVTO_API_GUIDE.md](./DEVTO_API_GUIDE.md).
+
+---
+
+## 6. Multi-Platform Publishing (LinkedIn & DEV.to)
+
+Posts can be created and scheduled for **LinkedIn**, **DEV.to**, or **both**:
+
+- **Targeting when creating post (`POST /api/posts`)**:
+  - `platforms: ["linkedin"]`: Scheduled strictly for LinkedIn.
+  - `platforms: ["devto"]`: Scheduled strictly for DEV.to.
+  - `platforms: ["linkedin", "devto"]`: Scheduled to publish to both simultaneously.
+- **Immediate Publishing Options (`/api/posts/:id/publish-*`)**:
+  - `POST /api/posts/:id/publish-now`: Publishes according to post's target or query param (`?target=both|linkedin|devto`).
+  - `POST /api/posts/:id/publish-linkedin`: Publishes strictly to LinkedIn.
+  - `POST /api/posts/:id/publish-devto`: Publishes strictly to DEV.to.
+  - `POST /api/posts/:id/publish-both`: Publishes to both platforms concurrently.
+
+---
+
+## 7. Upstash Redis Caching Layer
 
 To guarantee sub-5ms response times on Vercel Serverless without cold-start TCP limits, `corelink_server` integrates native `@upstash/redis` (REST API) with graceful fallback to `ioredis` (TCP) and bypass mode:
 
@@ -546,9 +582,10 @@ To guarantee sub-5ms response times on Vercel Serverless without cold-start TCP 
 
 ---
 
-## 7. Database Migrations & DDL Updates
+## 8. Database Migrations & DDL Updates
 
 The complete SQL migrations are stored under `supabase/migrations/`:
 
 - `20240902000000_initial_schema.sql`: Initial `profiles`, `posts`, and `ai_generation_logs` schema.
 - `20260906000000_post_analytics.sql`: Adds analytics columns to `posts` (`likes_count`, `comments_count`, `shares_count`, `impressions_count`, `engagement_rate`, `metrics_last_synced_at`) and creates `post_analytics_history` with Row Level Security (RLS) policies.
+- `20261007000000_devto_support.sql`: Adds DEV.to integration columns to `posts` (`platforms`, `devto_article_id`, `devto_url`, `devto_published_at`, `devto_title`, `devto_tags`, `devto_canonical_url`) and `encrypted_devto_api_key` to `profiles`.

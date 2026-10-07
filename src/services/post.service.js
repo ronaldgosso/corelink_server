@@ -31,6 +31,32 @@ export class PostService {
     return d.toISOString();
   }
 
+  static normalizePlatforms(platforms, target = null) {
+    if (target) {
+      const t = String(target).toLowerCase();
+      if (t === 'both' || t === 'all') return ['linkedin', 'devto'];
+      if (t === 'devto') return ['devto'];
+      if (t === 'linkedin') return ['linkedin'];
+    }
+
+    if (Array.isArray(platforms) && platforms.length > 0) {
+      const cleaned = platforms.map((p) => String(p).toLowerCase().trim()).filter(Boolean);
+      if (cleaned.includes('both') || cleaned.includes('all')) return ['linkedin', 'devto'];
+      return [...new Set(cleaned)];
+    }
+
+    if (typeof platforms === 'string' && platforms.trim()) {
+      const p = platforms.toLowerCase().trim();
+      if (p === 'both' || p === 'all') return ['linkedin', 'devto'];
+      if (p.includes(',')) {
+        return [...new Set(p.split(',').map((x) => x.trim()).filter(Boolean))];
+      }
+      return [p];
+    }
+
+    return ['linkedin'];
+  }
+
   static async createPost({
     userId,
     content,
@@ -40,6 +66,11 @@ export class PostService {
     mediaType = 'none',
     mediaAssetUrn = null,
     status = 'pending',
+    platforms = ['linkedin'],
+    target = null,
+    devtoTitle = null,
+    devtoTags = null,
+    devtoCanonicalUrl = null,
   }) {
     if (!content || content.trim().length === 0) {
       throw new Error('Post content is required.');
@@ -50,6 +81,7 @@ export class PostService {
     }
 
     const scheduledDateIso = this.parseScheduledDate(scheduledAt, timezoneOffset);
+    const normalizedPlatforms = this.normalizePlatforms(platforms, target);
 
     const insertPayload = {
       user_id: userId,
@@ -58,6 +90,7 @@ export class PostService {
       media_url: mediaUrl,
       media_type: mediaType || 'none',
       status: status || 'pending',
+      platforms: normalizedPlatforms,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -65,16 +98,46 @@ export class PostService {
     if (mediaAssetUrn) {
       insertPayload.media_asset_urn = mediaAssetUrn;
     }
+    if (devtoTitle) {
+      insertPayload.devto_title = devtoTitle;
+    }
+    if (devtoTags) {
+      insertPayload.devto_tags = Array.isArray(devtoTags) ? devtoTags : String(devtoTags).split(',');
+    }
+    if (devtoCanonicalUrl) {
+      insertPayload.devto_canonical_url = devtoCanonicalUrl;
+    }
 
-    const { data: post, error } = await supabaseAdmin
+    let post = null;
+    let { data, error } = await supabaseAdmin
       .from('posts')
       .insert(insertPayload)
       .select('*')
       .single();
 
-    if (error) {
+    if (error && error.message && error.message.includes('column')) {
+      // Safe fallback if Dev.to columns have not yet been migrated in remote Supabase
+      console.warn('[PostService] Columns not found in Supabase posts table, retrying with core schema:', error.message);
+      delete insertPayload.platforms;
+      delete insertPayload.devto_title;
+      delete insertPayload.devto_tags;
+      delete insertPayload.devto_canonical_url;
+
+      const fallbackRes = await supabaseAdmin
+        .from('posts')
+        .insert(insertPayload)
+        .select('*')
+        .single();
+
+      if (fallbackRes.error) {
+        throw new Error(`Failed to create post: ${fallbackRes.error.message}`);
+      }
+      post = { ...fallbackRes.data, platforms: normalizedPlatforms };
+    } else if (error) {
       console.error('Supabase post insert error:', error);
       throw new Error(`Failed to create post: ${error.message}`);
+    } else {
+      post = data;
     }
 
     return this.formatPost(post);
@@ -125,7 +188,21 @@ export class PostService {
   /**
    * Updates an existing post
    */
-  static async updatePost({ userId, postId, content, scheduledAt, status, mediaUrl, mediaType, mediaAssetUrn }) {
+  static async updatePost({
+    userId,
+    postId,
+    content,
+    scheduledAt,
+    status,
+    mediaUrl,
+    mediaType,
+    mediaAssetUrn,
+    platforms,
+    target,
+    devtoTitle,
+    devtoTags,
+    devtoCanonicalUrl,
+  }) {
     const updatePayload = {
       updated_at: new Date().toISOString(),
     };
@@ -142,8 +219,17 @@ export class PostService {
     if (mediaUrl !== undefined) updatePayload.media_url = mediaUrl;
     if (mediaType !== undefined) updatePayload.media_type = mediaType;
     if (mediaAssetUrn !== undefined) updatePayload.media_asset_urn = mediaAssetUrn;
+    if (platforms !== undefined || target !== undefined) {
+      updatePayload.platforms = this.normalizePlatforms(platforms, target);
+    }
+    if (devtoTitle !== undefined) updatePayload.devto_title = devtoTitle;
+    if (devtoTags !== undefined) {
+      updatePayload.devto_tags = Array.isArray(devtoTags) ? devtoTags : String(devtoTags).split(',');
+    }
+    if (devtoCanonicalUrl !== undefined) updatePayload.devto_canonical_url = devtoCanonicalUrl;
 
-    const { data: updatedPost, error } = await supabaseAdmin
+    let updatedPost = null;
+    let { data, error } = await supabaseAdmin
       .from('posts')
       .update(updatePayload)
       .eq('id', postId)
@@ -151,9 +237,30 @@ export class PostService {
       .select('*')
       .single();
 
-    if (error) {
+    if (error && error.message && error.message.includes('column')) {
+      console.warn('[PostService] Devto columns not in posts schema, retrying update:', error.message);
+      delete updatePayload.platforms;
+      delete updatePayload.devto_title;
+      delete updatePayload.devto_tags;
+      delete updatePayload.devto_canonical_url;
+
+      const fallbackRes = await supabaseAdmin
+        .from('posts')
+        .update(updatePayload)
+        .eq('id', postId)
+        .eq('user_id', userId)
+        .select('*')
+        .single();
+
+      if (fallbackRes.error) {
+        throw new Error(`Failed to update post: ${fallbackRes.error.message}`);
+      }
+      updatedPost = fallbackRes.data;
+    } else if (error) {
       console.error('Supabase update post error:', error);
       throw new Error(`Failed to update post: ${error.message}`);
+    } else {
+      updatedPost = data;
     }
 
     return this.formatPost(updatedPost);
@@ -348,7 +455,20 @@ export class PostService {
       publishedAt: post.published_at,
       published_at: post.published_at,
       status: post.status,
+      platforms: post.platforms || ['linkedin'],
       linkedinPostUrn: post.linkedin_post_urn,
+      devtoArticleId: post.devto_article_id || null,
+      devto_article_id: post.devto_article_id || null,
+      devtoUrl: post.devto_url || null,
+      devto_url: post.devto_url || null,
+      devtoPublishedAt: post.devto_published_at || null,
+      devto_published_at: post.devto_published_at || null,
+      devtoTitle: post.devto_title || null,
+      devto_title: post.devto_title || null,
+      devtoTags: post.devto_tags || [],
+      devto_tags: post.devto_tags || [],
+      devtoCanonicalUrl: post.devto_canonical_url || null,
+      devto_canonical_url: post.devto_canonical_url || null,
       errorLog: post.error_log,
       retryCount: post.retry_count,
       likesCount: post.likes_count || 0,

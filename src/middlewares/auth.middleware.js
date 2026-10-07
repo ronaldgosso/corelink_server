@@ -49,3 +49,29 @@ export const requireAuth = async (req, res, next) => {
     });
   }
 };
+
+/**
+ * Optional Authentication Middleware
+ * Attaches user profile if valid Bearer token is provided, otherwise continues
+ */
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, config.security.jwtSecret);
+      if (decoded && decoded.userId) {
+        req.user = {
+          id: decoded.userId,
+          email: decoded.email,
+          name: decoded.name,
+          linkedinMemberId: decoded.linkedinMemberId,
+        };
+      }
+    }
+  } catch {
+    // Silently continue for optional auth
+  }
+  next();
+};
+

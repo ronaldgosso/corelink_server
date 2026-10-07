@@ -1,4 +1,4 @@
-import { LinkedInService } from '../services/linkedin.service.js';
+import { PublishService } from '../services/publish.service.js';
 import { redisService, TTL } from '../services/redis.service.js';
 
 // In-memory tracker for the most recent Cloudflare Worker / Cron dispatch
@@ -24,7 +24,7 @@ export const getScheduleWindow = async (req, res) => {
   const currentMinutes = now.getUTCMinutes();
   const currentSeconds = now.getUTCSeconds();
   const remainder = currentMinutes % cadenceMinutes;
-  
+
   // Minutes until next boundary
   let minutesToNext = cadenceMinutes - remainder;
   // If we are right on the boundary (within 15 seconds), push to the next window
@@ -32,8 +32,10 @@ export const getScheduleWindow = async (req, res) => {
     minutesToNext = cadenceMinutes;
   }
 
-  const nextDispatchWindow = new Date(now.getTime() + minutesToNext * 60 * 1000 - currentSeconds * 1000 - now.getUTCMilliseconds());
-  
+  const nextDispatchWindow = new Date(
+    now.getTime() + minutesToNext * 60 * 1000 - currentSeconds * 1000 - now.getUTCMilliseconds()
+  );
+
   // Suggested scheduled time gives the user at least 5 minutes buffer
   let suggestedScheduledAt = new Date(nextDispatchWindow);
   if (suggestedScheduledAt.getTime() - now.getTime() < 3 * 60 * 1000) {
@@ -70,29 +72,79 @@ export const getScheduleWindow = async (req, res) => {
   });
 };
 
+/**
+ * Universal immediate publish handler supporting:
+ * - target: 'auto' (reads post platforms)
+ * - target: 'both' (publishes to LinkedIn and DEV.to)
+ * - target: 'linkedin' (publishes to LinkedIn only)
+ * - target: 'devto' (publishes to DEV.to only)
+ */
 export const handlePublishPostNow = async (req, res) => {
   try {
     const { id } = req.params;
+    const target = req.query.target || req.body?.target || req.body?.platform || 'auto';
+    const devtoApiKey = req.body?.devto_api_key || req.headers['x-devto-api-key'] || null;
 
-    const publishedPost = await LinkedInService.publishPostNow({
+    const overrides = {
+      title: req.body?.title || req.body?.devto_title,
+      tags: req.body?.tags || req.body?.devto_tags,
+      canonical_url: req.body?.canonical_url || req.body?.devto_canonical_url,
+      series: req.body?.series || req.body?.devto_series,
+      description: req.body?.description || req.body?.devto_description,
+      published: req.body?.published,
+    };
+
+    const publishResult = await PublishService.publishPost({
+      userId: req.user.id,
+      postId: id,
+      target,
+      overrides,
+      devtoApiKey,
+      req,
+    });
+
+    const targetDesc = publishResult.targets.join(' and ');
+    return res.status(200).json({
+      success: publishResult.success,
+      partialFailure: publishResult.partialFailure,
+      source: 'SUPABASE',
+      message: `Post processed for ${targetDesc}`,
+      targets: publishResult.targets,
+      results: publishResult.results,
+      post: publishResult.post,
+      data: publishResult.post,
+    });
+  } catch (error) {
+    console.error('Publish now error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to publish post',
+    });
+  }
+};
+
+/**
+ * Publish specifically to LinkedIn
+ */
+export const handlePublishToLinkedIn = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const publishResult = await PublishService.publishLinkedInOnly({
       userId: req.user.id,
       postId: id,
     });
-
-    // Invalidate cached post and listings
-    await redisService.del(`cache:post:${req.user.id}:${id}`);
-    await redisService.delPattern(`cache:posts:${req.user.id}:*`);
-    await redisService.del(`cache:stats:${req.user.id}`);
 
     return res.status(200).json({
       success: true,
       source: 'SUPABASE',
       message: 'Post published successfully to LinkedIn',
-      post: publishedPost,
-      data: publishedPost,
+      targets: ['linkedin'],
+      results: publishResult.results,
+      post: publishResult.post,
+      data: publishResult.post,
     });
   } catch (error) {
-    console.error('Publish now error:', error);
+    console.error('Publish to LinkedIn error:', error);
     return res.status(500).json({
       success: false,
       error: error.message || 'Failed to publish post to LinkedIn',
@@ -100,6 +152,94 @@ export const handlePublishPostNow = async (req, res) => {
   }
 };
 
+/**
+ * Publish specifically to DEV.to
+ */
+export const handlePublishToDevTo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const devtoApiKey = req.body?.devto_api_key || req.headers['x-devto-api-key'] || null;
+    const overrides = {
+      title: req.body?.title || req.body?.devto_title,
+      tags: req.body?.tags || req.body?.devto_tags,
+      canonical_url: req.body?.canonical_url || req.body?.devto_canonical_url,
+      series: req.body?.series || req.body?.devto_series,
+      description: req.body?.description || req.body?.devto_description,
+      published: req.body?.published,
+    };
+
+    const publishResult = await PublishService.publishDevToOnly({
+      userId: req.user.id,
+      postId: id,
+      overrides,
+      devtoApiKey,
+      req,
+    });
+
+    return res.status(200).json({
+      success: true,
+      source: 'SUPABASE',
+      message: 'Post published successfully to DEV.to',
+      targets: ['devto'],
+      results: publishResult.results,
+      post: publishResult.post,
+      data: publishResult.post,
+    });
+  } catch (error) {
+    console.error('Publish to DEV.to error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to publish post to DEV.to',
+    });
+  }
+};
+
+/**
+ * Publish simultaneously to both LinkedIn and DEV.to
+ */
+export const handlePublishToBoth = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const devtoApiKey = req.body?.devto_api_key || req.headers['x-devto-api-key'] || null;
+    const overrides = {
+      title: req.body?.title || req.body?.devto_title,
+      tags: req.body?.tags || req.body?.devto_tags,
+      canonical_url: req.body?.canonical_url || req.body?.devto_canonical_url,
+      series: req.body?.series || req.body?.devto_series,
+      description: req.body?.description || req.body?.devto_description,
+      published: req.body?.published,
+    };
+
+    const publishResult = await PublishService.publishBoth({
+      userId: req.user.id,
+      postId: id,
+      overrides,
+      devtoApiKey,
+      req,
+    });
+
+    return res.status(200).json({
+      success: publishResult.success,
+      partialFailure: publishResult.partialFailure,
+      source: 'SUPABASE',
+      message: 'Post published to both LinkedIn and DEV.to',
+      targets: ['linkedin', 'devto'],
+      results: publishResult.results,
+      post: publishResult.post,
+      data: publishResult.post,
+    });
+  } catch (error) {
+    console.error('Publish to both platforms error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to publish post to LinkedIn and DEV.to',
+    });
+  }
+};
+
+/**
+ * Cloudflare Worker / Cron Dispatcher Runner
+ */
 export const handleCronPublishQueue = async (req, res) => {
   try {
     const queryLimit = req.query?.batch_limit;
@@ -108,7 +248,7 @@ export const handleCronPublishQueue = async (req, res) => {
 
     lastWorkerRunAt = new Date().toISOString();
 
-    const summary = await LinkedInService.processCronPublishingQueue({
+    const summary = await PublishService.processCronPublishingQueue({
       batchLimit,
     });
 

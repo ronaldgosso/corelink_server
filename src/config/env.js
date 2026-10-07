@@ -36,7 +36,7 @@ export const config = {
     clientId: process.env.LINKEDIN_CLIENT_ID || '',
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
     redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:5000/api/auth/linkedin/callback',
-    apiVersion: process.env.LINKEDIN_VERSION || '202509',
+    apiVersion: process.env.LINKEDIN_VERSION || '202609',
   },
 
   // Redis Caching Configuration (Upstash REST or Standard Redis URL)

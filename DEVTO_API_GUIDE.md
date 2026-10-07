@@ -54,6 +54,14 @@ The frontend should pass the user's API key in one of the following ways:
 > 3. Scroll down to **DEV Community API Keys**.
 > 4. Generate a new API key and copy it into the CoreLink frontend input.
 
+> **Missing API Key Error Response (`400 Bad Request`):**
+> ```json
+> {
+>   "success": false,
+>   "error": "DEV.to API key is required. Please pass your DEV.to API key in App Settings."
+> }
+> ```
+
 ---
 
 ## 2. Targeting Options Overview

@@ -454,3 +454,43 @@ export const handleGetConnectionStatus = async (req, res) => {
   }
 };
 
+/**
+ * Permanently deletes an article from DEV.to
+ * Endpoint: DELETE /api/devto/articles/:id
+ */
+export const handleDeleteDevToArticle = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const apiKey = DevToService.resolveApiKey({
+      apiKey: req.query.api_key || req.query.devto_api_key || req.body?.devto_api_key,
+      req,
+      userProfile: req.user,
+    });
+
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'DEV.to API key is required. Please pass your DEV.to API key in App Settings.',
+      });
+    }
+
+    const result = await DevToService.deleteArticle({
+      apiKey,
+      articleId: id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      source: 'DEV_TO',
+      message: 'Article permanently deleted from DEV.to.',
+      ...result,
+    });
+  } catch (error) {
+    console.error('Delete DEV.to article error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete DEV.to article',
+    });
+  }
+};
+

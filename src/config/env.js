@@ -50,6 +50,13 @@ export const config = {
   devto: {
     apiUrl: process.env.DEVTO_API_URL || 'https://dev.to/api',
   },
+
+  // Firebase Cloud Messaging (FCM) Configuration
+  firebase: {
+    serviceAccountKeyPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
+    projectId: process.env.FIREBASE_PROJECT_ID || '',
+  },
 };
 
 /**

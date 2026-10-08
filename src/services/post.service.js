@@ -1,4 +1,5 @@
 import { LinkedInService } from './linkedin.service.js';
+import { DevToService } from './devto.service.js';
 import { decrypt } from '../utils/crypto.js';
 import { supabaseAdmin } from '../config/supabase.js';
 
@@ -267,16 +268,28 @@ export class PostService {
   }
 
   /**
-   * Deletes a scheduled post
+   * Deletes a scheduled post (optionally from live LinkedIn and/or DEV.to)
    */
-  static async deletePost({ userId, postId, deleteFromLinkedIn = false }) {
+  static async deletePost({
+    userId,
+    postId,
+    deleteFromLinkedIn = false,
+    deleteFromDevTo = false,
+  }) {
     const post = await this.getPostById({ userId, postId });
     if (!post) {
       throw new Error('Post not found in database.');
     }
 
     let linkedInDeleted = false;
-    if (deleteFromLinkedIn && post.linkedinPostUrn) {
+    let devToDeleted = false;
+
+    // Fetch author profile if any external platform deletion is requested
+    const needsLinkedIn = deleteFromLinkedIn && post.linkedinPostUrn;
+    const devtoArticleId = post.devtoArticleId || post.devto_article_id;
+    const needsDevTo = deleteFromDevTo && devtoArticleId;
+
+    if (needsLinkedIn || needsDevTo) {
       const { data: profile, error: profileError } = await supabaseAdmin
         .from('profiles')
         .select('*')
@@ -284,16 +297,35 @@ export class PostService {
         .single();
 
       if (profileError || !profile) {
-        throw new Error('Author profile not found for LinkedIn post deletion.');
+        throw new Error('Author profile not found for external platform post deletion.');
       }
 
-      if (profile.encrypted_access_token && profile.encrypted_access_token !== 'DISCONNECTED') {
-        const accessToken = decrypt(profile.encrypted_access_token);
-        await LinkedInService.deletePostFromLinkedIn({
-          accessToken,
-          postUrn: post.linkedinPostUrn,
-        });
-        linkedInDeleted = true;
+      if (needsLinkedIn) {
+        if (profile.encrypted_access_token && profile.encrypted_access_token !== 'DISCONNECTED') {
+          const accessToken = decrypt(profile.encrypted_access_token);
+          await LinkedInService.deletePostFromLinkedIn({
+            accessToken,
+            postUrn: post.linkedinPostUrn,
+          });
+          linkedInDeleted = true;
+        }
+      }
+
+      if (needsDevTo) {
+        const apiKey = DevToService.resolveApiKey({ userProfile: profile });
+        if (apiKey) {
+          try {
+            await DevToService.deleteArticle({
+              apiKey,
+              articleId: devtoArticleId,
+            });
+            devToDeleted = true;
+          } catch (devErr) {
+            console.warn(`[DEVTO_DELETE_WARN] Failed to delete DEV.to article ${devtoArticleId}:`, devErr.message);
+          }
+        } else {
+          console.warn(`[DEVTO_DELETE_WARN] No DEV.to API key configured to delete article ${devtoArticleId}`);
+        }
       }
     }
 
@@ -308,12 +340,20 @@ export class PostService {
       throw new Error(`Failed to delete post: ${error.message}`);
     }
 
+    let message = 'Post removed from CoreLink database.';
+    if (linkedInDeleted && devToDeleted) {
+      message = 'Post permanently deleted from LinkedIn feed, DEV.to, and CoreLink database.';
+    } else if (linkedInDeleted) {
+      message = 'Post permanently deleted from LinkedIn feed and CoreLink database.';
+    } else if (devToDeleted) {
+      message = 'Post permanently deleted from DEV.to and CoreLink database.';
+    }
+
     return {
       success: true,
-      message: linkedInDeleted
-        ? 'Post permanently deleted from LinkedIn feed and CoreLink database.'
-        : 'Post removed from CoreLink database.',
+      message,
       linkedInDeleted,
+      devToDeleted,
     };
   }
 

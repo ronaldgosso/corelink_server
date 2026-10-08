@@ -9,6 +9,7 @@ import {
   handleConnectDevTo,
   handleDisconnectDevTo,
   handleGetConnectionStatus,
+  handleDeleteDevToArticle,
 } from '../controllers/devto.controller.js';
 import { requireAuth, optionalAuth } from '../middlewares/auth.middleware.js';
 
@@ -34,6 +35,9 @@ router.get('/articles/:id', optionalAuth, handleGetDevToArticleById);
 
 // Update existing DEV.to article
 router.put('/articles/:id', optionalAuth, handleUpdateDevToArticle);
+
+// Delete existing DEV.to article
+router.delete('/articles/:id', optionalAuth, handleDeleteDevToArticle);
 
 // Cross-post an existing CoreLink post to DEV.to (requires Corelink authentication)
 router.post('/crosspost/:id', requireAuth, handleCrossPostToDevTo);

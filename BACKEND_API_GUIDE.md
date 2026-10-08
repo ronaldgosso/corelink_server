@@ -423,7 +423,7 @@ All endpoints require `Authorization: Bearer <auth_token>`.
 | `GET`    | `/api/posts`       | List posts (`?status=pending&page=1&limit=20&sortBy=scheduled_at`)                                  |
 | `GET`    | `/api/posts/:id`   | Get post details by UUID                                                                            |
 | `PUT`    | `/api/posts/:id`   | Update post content, reschedule time, or media attachments                                          |
-| `DELETE` | `/api/posts/:id`   | Delete post / cancel schedule                                                                       |
+| `DELETE` | `/api/posts/:id`   | Delete post / cancel schedule (`?deleteFromLinkedIn=true`, `?deleteFromDevTo=true`, or `?deleteFromRemote=true`) |
 | `GET`    | `/api/posts/stats` | Get post counts (pending, published, failed)                                                        |
 
 ---
@@ -462,9 +462,9 @@ Uploads and registers an image or video directly with LinkedIn's 3-step REST upl
 
 ---
 
-### 6. LinkedIn Analytics & Engagement Metrics (`/api/analytics`)
+### 6. Multi-Platform Analytics & Engagement Metrics (`/api/analytics`)
 
-All analytics endpoints feature Upstash Redis caching (`TTL.POST_STATS`: 300s) and explicitly indicate data origin via `"source": "REDIS" | "SUPABASE"`.
+All analytics endpoints feature Upstash Redis caching (`TTL.POST_STATS`: 300s), support both LinkedIn and DEV.to articles (and cross-posted posts with unified combined metrics), and explicitly indicate data origin via `"source": "REDIS" | "SUPABASE"`.
 
 #### `GET /api/analytics/overview`
 

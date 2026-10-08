@@ -14,17 +14,21 @@ This guide details the **DEV.to (Forem API)** integration in `corelink_server`. 
    - [List User Articles (`GET /api/devto/articles`)](#get-apidevtoarticles)
    - [Get Single Article (`GET /api/devto/articles/:id`)](#get-apidevtoarticlesid)
    - [Update Article (`PUT /api/devto/articles/:id`)](#put-apidevtoarticlesid)
+   - [Delete Article (`DELETE /api/devto/articles/:id`)](#delete-apidevtoarticlesid)
    - [Cross-post Existing Post (`POST /api/devto/crosspost/:id`)](#post-apidevtocrosspostid)
-4. [Multi-Platform Post Creation (`/api/posts`)](#4-multi-platform-post-creation-apiposts)
+4. [Multi-Platform Post Creation & Management (`/api/posts`)](#4-multi-platform-post-creation-apiposts)
    - [Create Post for LinkedIn Only](#create-post-for-linkedin-only)
    - [Create Post for DEV.to Only](#create-post-for-devto-only)
    - [Create Post for Both (LinkedIn + DEV.to)](#create-post-for-both-linkedin--devto)
+   - [Multi-Platform Post Deletion (`DELETE /api/posts/:id`)](#multi-platform-post-deletion)
 5. [Publishing Pipeline & Immediate Dispatch (`/api/posts/:id/publish-*`)](#5-publishing-pipeline--immediate-dispatch)
    - [Publish Now with Dynamic Target (`POST /api/posts/:id/publish-now`)](#post-apipostsidpublish-now)
    - [Publish to LinkedIn Only (`POST /api/posts/:id/publish-linkedin`)](#post-apipostsidpublish-linkedin)
    - [Publish to DEV.to Only (`POST /api/posts/:id/publish-devto`)](#post-apipostsidpublish-devto)
    - [Publish to Both Platforms (`POST /api/posts/:id/publish-both`)](#post-apipostsidpublish-both)
-6. [Database Schema & Migrations](#6-database-schema--migrations)
+6. [Cross-Platform Analytics & Live Metrics Sync](#6-cross-platform-analytics--live-metrics-sync)
+7. [Database Schema & Migrations](#7-database-schema--migrations)
+8. [Postman & API Collections](#8-postman--api-collections)
 
 ---
 
@@ -280,6 +284,22 @@ Updates an existing DEV.to article.
 
 ---
 
+### `DELETE /api/devto/articles/:id`
+Permanently deletes an article from DEV.to.
+
+- **Headers**: `x-devto-api-key: your_devto_api_key` (or `Authorization: Bearer <jwt_token>` if API key is stored in profile)
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "source": "DEV_TO",
+    "message": "Article permanently deleted from DEV.to.",
+    "articleId": "1984201"
+  }
+  ```
+
+---
+
 ### `POST /api/devto/crosspost/:id`
 Cross-posts an existing CoreLink scheduled or published post to DEV.to.
 
@@ -330,6 +350,37 @@ When creating a scheduled post via `POST /api/posts`, use the `platforms` array 
 }
 ```
 *(Or specify `"target": "both"`)*
+
+### Multi-Platform Post Deletion (`DELETE /api/posts/:id`)
+When deleting a post from CoreLink, users can choose whether to remove the local database record only, or also delete the live published article/post from remote feeds:
+
+- **Delete from CoreLink Only (Default)**:
+  `DELETE /api/posts/:id`
+  Erases the post from Supabase and Redis cache. Remote articles/posts on LinkedIn and DEV.to remain untouched.
+
+- **Delete from DEV.to & CoreLink**:
+  `DELETE /api/posts/:id?deleteFromDevTo=true`
+  Permanently deletes the article from DEV.to via `DELETE https://dev.to/api/articles/{article_id}` and removes the CoreLink record.
+
+- **Delete from LinkedIn & CoreLink**:
+  `DELETE /api/posts/:id?deleteFromLinkedIn=true`
+  Permanently deletes the post from LinkedIn feed via LinkedIn REST API and removes the CoreLink record.
+
+- **Delete Everywhere (LinkedIn, DEV.to & CoreLink)**:
+  `DELETE /api/posts/:id?deleteFromRemote=true`
+  (Or `?deleteFromLinkedIn=true&deleteFromDevTo=true`)
+  Permanently deletes from both LinkedIn and DEV.to, then erases the CoreLink database record.
+
+**Response `200 OK`**:
+```json
+{
+  "success": true,
+  "source": "SUPABASE",
+  "message": "Post permanently deleted from LinkedIn feed, DEV.to, and CoreLink database.",
+  "linkedInDeleted": true,
+  "devToDeleted": true
+}
+```
 
 ---
 
@@ -387,7 +438,64 @@ Dispatches the post immediately. Accepts dynamic targeting:
 
 ---
 
-## 6. Database Schema & Migrations
+## 6. Cross-Platform Analytics & Live Metrics Sync
+
+CoreLink aggregates live social metrics and engagement KPIs across both platforms:
+
+### Metric Mapping Table
+| Metric | LinkedIn REST API | DEV.to (Forem API) | CoreLink Unified Model |
+| :--- | :--- | :--- | :--- |
+| **Likes / Reactions** | `numLikes` + Reaction URNs | `public_reactions_count` | Unified `likes` / Reactions |
+| **Comments** | `numComments` | `comments_count` | Unified `comments` |
+| **Impressions / Views** | `impressionCount` | `page_views_count` | Unified `impressions` / Page Views |
+| **Shares** | `numShares` | N/A (0) | `shares` (LinkedIn) |
+| **Engagement Rate** | `(Interactions / Impressions) * 100` | `(Reactions + Comments) / Views * 100` | Unified `engagementRate` (%) |
+
+### Endpoints
+- **`GET /api/posts/:id/analytics`** (or `GET /api/analytics/posts/:id`):
+  Fetches unified real-time analytics. Pass `?force=true` to query live LinkedIn and DEV.to APIs directly, bypassing the 300s Upstash Redis cache.
+- **`POST /api/posts/:id/analytics/sync`**:
+  Forces an immediate real-time synchronization against external platform APIs and commits historical trend points to `public.post_analytics_history`.
+- **`GET /api/analytics/overview`**:
+  Aggregates creator profile-wide KPIs including total likes, comments, impressions, top performing posts, and 14-day timelines. Fully supports DEV.to and multi-platform articles.
+
+**Unified Post Analytics Response `200 OK`**:
+```json
+{
+  "success": true,
+  "source": "SUPABASE",
+  "data": {
+    "postId": "52857053-f725-4b10-a7d1-031e42c23bc8",
+    "status": "published",
+    "isPublished": true,
+    "platforms": ["linkedin", "devto"],
+    "linkedinPostUrn": "urn:li:share:724589218932",
+    "devtoArticleId": 1984201,
+    "devtoUrl": "https://dev.to/janedoe/multi-platform-publishing-4k12",
+    "metrics": {
+      "likes": 52,
+      "comments": 9,
+      "shares": 4,
+      "impressions": 1820,
+      "engagementRate": 3.57,
+      "reactionBreakdown": {
+        "LIKE": 30,
+        "PRAISE": 5,
+        "devto_reactions": 17
+      },
+      "platformBreakdown": {
+        "linkedin": { "likes": 35, "comments": 6, "shares": 4, "impressions": 1200 },
+        "devto": { "likes": 17, "comments": 3, "impressions": 620 }
+      }
+    },
+    "metricsLastSyncedAt": "2026-10-07T14:15:00.000Z"
+  }
+}
+```
+
+---
+
+## 7. Database Schema & Migrations
 
 The migration `supabase/migrations/20261007000000_devto_support.sql` applies the following changes:
 
@@ -413,7 +521,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_platforms
 
 ---
 
-## 7. Postman & API Collections
+## 8. Postman & API Collections
 
 All DEV.to and multi-platform publishing endpoints are included in the repository Postman collection:
 

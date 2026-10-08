@@ -4,6 +4,7 @@ import { PostService } from './post.service.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { decrypt } from '../utils/crypto.js';
 import { redisService } from './redis.service.js';
+import { fcmService } from './fcm.service.js';
 
 export class PublishService {
   /**
@@ -332,6 +333,17 @@ export class PublishService {
           results.succeeded++;
           if (pubResult.partialFailure) {
             results.partialFailed++;
+          }
+
+          // Trigger FCM push notification to user's registered devices
+          try {
+            await fcmService.sendPostPublishedNotification({
+              post: pubResult.post || post,
+              results: pubResult.results,
+              userId: post.user_id,
+            });
+          } catch (fcmErr) {
+            console.warn('[PublishService] FCM dispatch warning:', fcmErr.message);
           }
         } else {
           results.failed++;

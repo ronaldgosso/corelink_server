@@ -1,4 +1,5 @@
-import admin from 'firebase-admin';
+import { initializeApp, cert, applicationDefault, getApps } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import fs from 'fs';
 import path from 'path';
 import { config } from '../config/env.js';
@@ -8,6 +9,7 @@ class FcmService {
   constructor() {
     this.isConfigured = false;
     this.app = null;
+    this.messaging = null;
     this.init();
   }
 
@@ -16,8 +18,10 @@ class FcmService {
    */
   init() {
     try {
-      if (admin.apps.length > 0) {
-        this.app = admin.apps[0];
+      const existingApps = getApps();
+      if (existingApps.length > 0) {
+        this.app = existingApps[0];
+        this.messaging = getMessaging(this.app);
         this.isConfigured = true;
         console.log('[FCM] Firebase Admin already initialized');
         return;
@@ -29,7 +33,7 @@ class FcmService {
       if (config.firebase.serviceAccountJson) {
         try {
           const serviceAccount = JSON.parse(config.firebase.serviceAccountJson);
-          credential = admin.credential.cert(serviceAccount);
+          credential = cert(serviceAccount);
         } catch (parseErr) {
           console.warn('[FCM] Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', parseErr.message);
         }
@@ -41,7 +45,7 @@ class FcmService {
         if (fs.existsSync(resolvedPath)) {
           const raw = fs.readFileSync(resolvedPath, 'utf8');
           const serviceAccount = JSON.parse(raw);
-          credential = admin.credential.cert(serviceAccount);
+          credential = cert(serviceAccount);
         } else {
           console.warn(`[FCM] Service account file not found at: ${resolvedPath}`);
         }
@@ -49,14 +53,15 @@ class FcmService {
 
       // 3. Fallback to GOOGLE_APPLICATION_CREDENTIALS if set in env
       if (!credential && process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-        credential = admin.credential.applicationDefault();
+        credential = applicationDefault();
       }
 
       if (credential) {
-        this.app = admin.initializeApp({
+        this.app = initializeApp({
           credential,
           projectId: config.firebase.projectId || undefined,
         });
+        this.messaging = getMessaging(this.app);
         this.isConfigured = true;
         console.log('[FCM] Firebase Admin initialized successfully');
       } else {
@@ -235,7 +240,7 @@ class FcmService {
         },
       };
 
-      const response = await admin.messaging().sendEachForMulticast(multicastPayload);
+      const response = await this.messaging.sendEachForMulticast(multicastPayload);
       console.log(
         `[FCM] Dispatched push: ${response.successCount} succeeded, ${response.failureCount} failed out of ${tokens.length} devices`
       );

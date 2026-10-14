@@ -28,20 +28,23 @@ const parseCorsOrigins = (corsConfig) => {
 
 const allowedOrigins = parseCorsOrigins(config.corsOrigin);
 
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins === '*') return true;
+  if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) return true;
+  // Local development on any port
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  // Any CoreLink Vercel deployment (production, web 2.0, previews)
+  if (/^https:\/\/corelink[a-zA-Z0-9-_]*\.vercel\.app$/.test(origin)) return true;
+  return false;
+};
+
 // CORS configuration - supports React web apps (localhost & production)
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server)
-      if (!origin) return callback(null, true);
-
-      // If configured to allow all origins, reflect incoming origin for credentials compatibility
-      if (allowedOrigins === '*') {
-        return callback(null, true);
-      }
-
-      // Check if incoming origin matches any allowed origin
-      if (Array.isArray(allowedOrigins) && allowedOrigins.includes(origin)) {
+      // Allow requests matching allowed origins or CoreLink web deployments
+      if (isOriginAllowed(origin)) {
         return callback(null, true);
       }
 

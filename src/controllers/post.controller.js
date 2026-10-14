@@ -23,7 +23,7 @@ export const handleCreatePost = async (req, res) => {
       devto_canonical_url,
       devtoCanonicalUrl,
     } = req.body;
-    const finalScheduledAt = scheduled_at || scheduledAt;
+    const finalScheduledAt = scheduled_at || scheduledAt || new Date().toISOString();
     const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
     const finalMediaType = media_type || mediaType || 'none';
     const finalMediaAssetUrn = media_asset_urn || mediaAssetUrn || null;
@@ -32,13 +32,6 @@ export const handleCreatePost = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Content is required in request body (e.g. { "content": "..." }).',
-      });
-    }
-
-    if (!finalScheduledAt) {
-      return res.status(400).json({
-        success: false,
-        error: 'scheduled_at is required in request body (e.g. { "scheduled_at": "2026-09-04T10:00:00Z" }).',
       });
     }
 

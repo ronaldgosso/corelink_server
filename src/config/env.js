@@ -36,7 +36,7 @@ export const config = {
     clientId: process.env.LINKEDIN_CLIENT_ID || '',
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
     redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:5000/api/auth/linkedin/callback',
-    apiVersion: process.env.LINKEDIN_VERSION || '202509',
+    apiVersion: process.env.LINKEDIN_VERSION || '202609',
   },
 
   // Redis Caching Configuration (Upstash REST or Standard Redis URL)
@@ -44,6 +44,18 @@ export const config = {
     url: process.env.REDIS_URL || '',
     upstashUrl: process.env.UPSTASH_REDIS_REST_URL || '',
     upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  },
+
+  // DEV.to Configuration (User API keys provided per-request from frontend)
+  devto: {
+    apiUrl: process.env.DEVTO_API_URL || 'https://dev.to/api',
+  },
+
+  // Firebase Cloud Messaging (FCM) Configuration
+  firebase: {
+    serviceAccountKeyPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '',
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
+    projectId: process.env.FIREBASE_PROJECT_ID || '',
   },
 };
 

@@ -181,31 +181,45 @@ infisical export --env=dev --format=yaml > secrets.yaml
 
 ### Workflow 3: Pushing & Managing Secrets via CLI
 
-#### 1. Import Existing `.env` into Infisical
-- **Via Infisical Dashboard (Easiest for bulk import):**
-  Open your project in the Infisical Web App -> Click **Import from .env** -> Paste `.env` content -> Select environment (`dev`, `staging`, `prod`) -> Save.
+#### 1. Bulk Synchronize Local `.env` into Infisical Cloud (Recommended)
+You can directly push and synchronize your entire local `.env` file to Infisical Cloud with a single command:
+
+```bash
+# Synchronize local .env into dev environment (masks values securely)
+infisical secrets set --file=.env --env=dev
+
+# Synchronize local .env into production or staging
+infisical secrets set --file=.env --env=prod
+infisical secrets set --file=.env --env=staging
+```
+
+This automatically creates any missing keys, updates modified secrets, and preserves unchanged values.
+
+> **Note on Client / User API Keys:** User-specific keys (such as individual DEV.to API keys) are supplied per-request from the client frontend via HTTP headers (`x-devto-api-key`) and are not stored in shared server environment secrets.
+
+#### 2. Manual / Single Secret Upload
 - **Via CLI (Iterative upload):**
   ```bash
   # Set a single secret
-  infisical secrets set DATABASE_URL="postgresql://user:password@localhost:5432/corelink" --env=dev
+  infisical secrets set MISTRAL_API_KEY="your_api_key" --env=dev
 
   # Set multiple secrets
-  infisical secrets set PORT=8080 JWT_SECRET="super-secret-key" --env=dev
+  infisical secrets set PORT=5000 JWT_SECRET="super-secret-key" --env=dev
 
   # Set secret value from a file (e.g. certificate or private key)
   infisical secrets set PRIVATE_KEY=@./keys/private.pem --env=dev
   ```
 
-#### 2. View and Manage Secrets
+#### 3. View and Manage Secrets
 ```bash
 # List secrets in the current environment
 infisical secrets --env=dev
 
 # Get a specific secret value
-infisical secrets get DATABASE_URL --env=dev
+infisical secrets get MISTRAL_API_KEY --env=dev
 
 # Delete a secret
-infisical secrets delete DATABASE_URL --env=dev
+infisical secrets delete UNUSED_KEY --env=dev
 
 # Generate a sanitized .env.example with keys only
 infisical secrets generate-example --env=dev > .env.example
@@ -336,6 +350,8 @@ jobs:
 | **Run app & auto-reload on secret change** | `infisical run --env=dev --watch -- <start-command>` |
 | **Export secrets to `.env`** | `infisical export --env=dev > .env` |
 | **Export to `.env` file directly** | `infisical export --env=dev --output-file=.env` |
+| **Sync `.env` file to Cloud** | `infisical secrets set --file=.env --env=dev` |
+| **Sync `.env` to Prod Cloud** | `infisical secrets set --file=.env --env=prod` |
 | **List secrets** | `infisical secrets --env=dev` |
 | **Set a secret** | `infisical secrets set KEY="value" --env=dev` |
 | **Delete a secret** | `infisical secrets delete KEY --env=dev` |

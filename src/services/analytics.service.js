@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/supabase.js';
 import { redisService, TTL } from './redis.service.js';
 import { LinkedInService } from './linkedin.service.js';
+import { DevToService } from './devto.service.js';
 
 export class AnalyticsService {
   /**
@@ -32,14 +33,21 @@ export class AnalyticsService {
       throw new Error('Post not found or does not belong to the user.');
     }
 
-    // If post is draft or pending or missing linkedin_post_urn
-    if (post.status !== 'published' || !post.linkedin_post_urn) {
+    const hasLinkedIn = Boolean(post.linkedin_post_urn);
+    const hasDevTo = Boolean(post.devto_article_id);
+    const isPublished = post.status === 'published' && (hasLinkedIn || hasDevTo);
+
+    // If post is not published to any live platform
+    if (!isPublished) {
       const emptyPayload = {
         postId: post.id,
         userId: post.user_id,
         status: post.status,
         isPublished: false,
         linkedinPostUrn: post.linkedin_post_urn || null,
+        devtoArticleId: post.devto_article_id || null,
+        devtoUrl: post.devto_url || null,
+        platforms: post.platforms || [],
         metrics: {
           likes: post.likes_count || 0,
           comments: post.comments_count || 0,
@@ -56,7 +64,7 @@ export class AnalyticsService {
       return { data: emptyPayload, source: 'SUPABASE' };
     }
 
-    // 3. Determine if live sync with LinkedIn is required
+    // 3. Determine if live sync with platforms is required
     const isStale = !post.metrics_last_synced_at ||
       new Date(post.metrics_last_synced_at).getTime() < Date.now() - 3 * 3600 * 1000; // 3 hours
 
@@ -72,57 +80,113 @@ export class AnalyticsService {
     let syncedAt = post.metrics_last_synced_at;
 
     if (forceSync || isStale) {
-      try {
-        const { accessToken } = await LinkedInService.getUserAccessToken(userId);
-        const liveMetrics = await LinkedInService.getPostSocialMetrics({
-          accessToken,
-          postUrn: post.linkedin_post_urn,
-        });
+      let linkedInMetrics = null;
+      let devtoMetrics = null;
 
-        if (liveMetrics && liveMetrics.isAvailable) {
-          currentMetrics = {
-            likes: liveMetrics.likes,
-            comments: liveMetrics.comments,
-            shares: liveMetrics.shares,
-            impressions: liveMetrics.impressions,
-            engagementRate: liveMetrics.engagementRate,
-            reactionBreakdown: liveMetrics.reactionBreakdown || {},
-          };
-          syncedAt = new Date().toISOString();
-
-          // Update post row
-          await supabaseAdmin
-            .from('posts')
-            .update({
-              likes_count: currentMetrics.likes,
-              comments_count: currentMetrics.comments,
-              shares_count: currentMetrics.shares,
-              impressions_count: currentMetrics.impressions,
-              engagement_rate: currentMetrics.engagementRate,
-              metrics_last_synced_at: syncedAt,
-              updated_at: syncedAt,
-            })
-            .eq('id', postId);
-
-          // Append historical data point
-          try {
-            await supabaseAdmin
-              .from('post_analytics_history')
-              .insert({
-                post_id: postId,
-                user_id: userId,
-                likes: currentMetrics.likes,
-                comments: currentMetrics.comments,
-                shares: currentMetrics.shares,
-                impressions: currentMetrics.impressions,
-                recorded_at: syncedAt,
-              });
-          } catch (histErr) {
-            console.warn('[ANALYTICS_HISTORY] Non-fatal history insert error:', histErr.message);
-          }
+      // 3a. Sync live LinkedIn metrics
+      if (hasLinkedIn) {
+        try {
+          const { accessToken } = await LinkedInService.getUserAccessToken(userId);
+          linkedInMetrics = await LinkedInService.getPostSocialMetrics({
+            accessToken,
+            postUrn: post.linkedin_post_urn,
+          });
+        } catch (syncErr) {
+          console.warn(`[ANALYTICS_SYNC_WARN] Failed LinkedIn metrics sync for post ${postId}: ${syncErr.message}`);
         }
-      } catch (syncErr) {
-        console.warn(`[ANALYTICS_SYNC_WARN] Failed live metrics sync for post ${postId}: ${syncErr.message}`);
+      }
+
+      // 3b. Sync live DEV.to metrics
+      if (hasDevTo) {
+        try {
+          const { data: profileRow } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+          const apiKey = DevToService.resolveApiKey({ userProfile: profileRow });
+          devtoMetrics = await DevToService.getArticleMetrics({
+            apiKey,
+            articleId: post.devto_article_id,
+          });
+        } catch (syncErr) {
+          console.warn(`[ANALYTICS_SYNC_WARN] Failed DEV.to metrics sync for post ${postId}: ${syncErr.message}`);
+        }
+      }
+
+      const hasNewLinkedIn = linkedInMetrics && linkedInMetrics.isAvailable;
+      const hasNewDevTo = devtoMetrics && devtoMetrics.isAvailable;
+
+      if (hasNewLinkedIn || hasNewDevTo) {
+        const liLikes = hasNewLinkedIn ? (linkedInMetrics.likes || 0) : 0;
+        const dtLikes = hasNewDevTo ? (devtoMetrics.likes || 0) : 0;
+        const liComments = hasNewLinkedIn ? (linkedInMetrics.comments || 0) : 0;
+        const dtComments = hasNewDevTo ? (devtoMetrics.comments || 0) : 0;
+        const liShares = hasNewLinkedIn ? (linkedInMetrics.shares || 0) : 0;
+        const dtShares = 0;
+        const liImpressions = hasNewLinkedIn ? (linkedInMetrics.impressions || 0) : 0;
+        const dtImpressions = hasNewDevTo ? (devtoMetrics.impressions || 0) : 0;
+
+        const totalLikes = (hasLinkedIn && hasDevTo) ? (liLikes + dtLikes) : (hasLinkedIn ? liLikes : dtLikes);
+        const totalComments = (hasLinkedIn && hasDevTo) ? (liComments + dtComments) : (hasLinkedIn ? liComments : dtComments);
+        const totalShares = liShares + dtShares;
+        const totalImpressions = (hasLinkedIn && hasDevTo) ? (liImpressions + dtImpressions) : (hasLinkedIn ? liImpressions : dtImpressions);
+
+        const totalInteractions = totalLikes + totalComments + totalShares;
+        const engagementRate = totalImpressions > 0
+          ? Number(((totalInteractions / totalImpressions) * 100).toFixed(2))
+          : (hasNewLinkedIn ? linkedInMetrics.engagementRate : (hasNewDevTo ? devtoMetrics.engagementRate : 0));
+
+        const reactionBreakdown = {
+          ...(linkedInMetrics?.reactionBreakdown || {}),
+          ...(dtLikes > 0 ? { devto_reactions: dtLikes } : {}),
+        };
+
+        currentMetrics = {
+          likes: totalLikes,
+          comments: totalComments,
+          shares: totalShares,
+          impressions: totalImpressions,
+          engagementRate,
+          reactionBreakdown,
+          platformBreakdown: {
+            ...(hasNewLinkedIn ? { linkedin: linkedInMetrics } : {}),
+            ...(hasNewDevTo ? { devto: devtoMetrics } : {}),
+          },
+        };
+        syncedAt = new Date().toISOString();
+
+        // Update post row
+        await supabaseAdmin
+          .from('posts')
+          .update({
+            likes_count: currentMetrics.likes,
+            comments_count: currentMetrics.comments,
+            shares_count: currentMetrics.shares,
+            impressions_count: currentMetrics.impressions,
+            engagement_rate: currentMetrics.engagementRate,
+            metrics_last_synced_at: syncedAt,
+            updated_at: syncedAt,
+          })
+          .eq('id', postId);
+
+        // Append historical data point
+        try {
+          await supabaseAdmin
+            .from('post_analytics_history')
+            .insert({
+              post_id: postId,
+              user_id: userId,
+              likes: currentMetrics.likes,
+              comments: currentMetrics.comments,
+              shares: currentMetrics.shares,
+              impressions: currentMetrics.impressions,
+              recorded_at: syncedAt,
+            });
+        } catch (histErr) {
+          console.warn('[ANALYTICS_HISTORY] Non-fatal history insert error:', histErr.message);
+        }
       }
     }
 
@@ -155,7 +219,10 @@ export class AnalyticsService {
       userId: post.user_id,
       status: post.status,
       isPublished: true,
-      linkedinPostUrn: post.linkedin_post_urn,
+      linkedinPostUrn: post.linkedin_post_urn || null,
+      devtoArticleId: post.devto_article_id || null,
+      devtoUrl: post.devto_url || null,
+      platforms: post.platforms || (hasLinkedIn && hasDevTo ? ['linkedin', 'devto'] : (hasDevTo ? ['devto'] : ['linkedin'])),
       contentSnippet: post.content ? post.content.substring(0, 100) : '',
       metrics: currentMetrics,
       metricsLastSyncedAt: syncedAt,
@@ -186,7 +253,7 @@ export class AnalyticsService {
     // 1. Fetch published posts for user
     const { data: posts, error } = await supabaseAdmin
       .from('posts')
-      .select('id, content, media_type, published_at, likes_count, comments_count, shares_count, impressions_count, engagement_rate, linkedin_post_urn, metrics_last_synced_at')
+      .select('id, content, media_type, published_at, likes_count, comments_count, shares_count, impressions_count, engagement_rate, linkedin_post_urn, devto_article_id, devto_url, platforms, metrics_last_synced_at')
       .eq('user_id', userId)
       .eq('status', 'published')
       .order('published_at', { ascending: false });
@@ -224,6 +291,9 @@ export class AnalyticsService {
         mediaType: p.media_type,
         publishedAt: p.published_at,
         linkedinPostUrn: p.linkedin_post_urn,
+        devtoArticleId: p.devto_article_id || null,
+        devtoUrl: p.devto_url || null,
+        platforms: p.platforms || (p.linkedin_post_urn && p.devto_article_id ? ['linkedin', 'devto'] : (p.devto_article_id ? ['devto'] : ['linkedin'])),
         likes,
         comments,
         shares,
@@ -344,9 +414,8 @@ export class AnalyticsService {
     // Select posts that haven't been synced in > 6 hours or have never been synced
     const { data: stalePosts, error } = await supabaseAdmin
       .from('posts')
-      .select('id, user_id, linkedin_post_urn, metrics_last_synced_at')
+      .select('id, user_id, linkedin_post_urn, devto_article_id, metrics_last_synced_at')
       .eq('status', 'published')
-      .not('linkedin_post_urn', 'is', null)
       .gte('created_at', fourteenDaysAgo)
       .or(`metrics_last_synced_at.is.null,metrics_last_synced_at.lte.${sixHoursAgo}`)
       .order('metrics_last_synced_at', { ascending: true, nullsFirst: true })
@@ -357,7 +426,9 @@ export class AnalyticsService {
       return { totalClaimed: 0, synced: 0, failed: 0, errors: [error.message] };
     }
 
-    const postsToSync = stalePosts || [];
+    const postsToSync = (stalePosts || []).filter(
+      (p) => Boolean(p.linkedin_post_urn || p.devto_article_id)
+    );
     const results = {
       totalClaimed: postsToSync.length,
       synced: 0,

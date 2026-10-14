@@ -143,3 +143,8 @@ vite.config.ts.timestamp-*
 .vite/
 
 .vercel
+
+# Firebase Admin Service Account Credentials & Secrets
+*firebase*adminsdk*.json
+*service-account*.json
+firebase-service-account.json

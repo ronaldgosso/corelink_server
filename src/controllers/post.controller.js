@@ -14,6 +14,14 @@ export const handleCreatePost = async (req, res) => {
       media_asset_urn,
       mediaAssetUrn,
       status,
+      platforms,
+      target,
+      devto_title,
+      devtoTitle,
+      devto_tags,
+      devtoTags,
+      devto_canonical_url,
+      devtoCanonicalUrl,
     } = req.body;
     const finalScheduledAt = scheduled_at || scheduledAt;
     const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
@@ -44,6 +52,11 @@ export const handleCreatePost = async (req, res) => {
       mediaType: finalMediaType,
       mediaAssetUrn: finalMediaAssetUrn,
       status: status || 'pending',
+      platforms,
+      target,
+      devtoTitle: devto_title || devtoTitle,
+      devtoTags: devto_tags || devtoTags,
+      devtoCanonicalUrl: devto_canonical_url || devtoCanonicalUrl,
     });
 
     // Invalidate cached post lists & stats for this user
@@ -162,6 +175,14 @@ export const handleUpdatePost = async (req, res) => {
       mediaType,
       media_asset_urn,
       mediaAssetUrn,
+      platforms,
+      target,
+      devto_title,
+      devtoTitle,
+      devto_tags,
+      devtoTags,
+      devto_canonical_url,
+      devtoCanonicalUrl,
     } = req.body;
     const finalScheduledAt = scheduled_at || scheduledAt;
     const finalMediaUrl = media_url !== undefined ? media_url : mediaUrl;
@@ -177,6 +198,11 @@ export const handleUpdatePost = async (req, res) => {
       mediaUrl: finalMediaUrl,
       mediaType: finalMediaType,
       mediaAssetUrn: finalMediaAssetUrn,
+      platforms,
+      target,
+      devtoTitle: devto_title || devtoTitle,
+      devtoTags: devto_tags || devtoTags,
+      devtoCanonicalUrl: devto_canonical_url || devtoCanonicalUrl,
     });
 
     // Invalidate cached post and listings
@@ -203,12 +229,15 @@ export const handleUpdatePost = async (req, res) => {
 export const handleDeletePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleteFromLinkedIn = req.query.deleteFromLinkedIn === 'true' || req.body?.deleteFromLinkedIn === true;
+    const deleteFromRemote = req.query.deleteFromRemote === 'true' || req.body?.deleteFromRemote === true;
+    const deleteFromLinkedIn = deleteFromRemote || req.query.deleteFromLinkedIn === 'true' || req.body?.deleteFromLinkedIn === true;
+    const deleteFromDevTo = deleteFromRemote || req.query.deleteFromDevTo === 'true' || req.body?.deleteFromDevTo === true;
 
     const result = await PostService.deletePost({
       userId: req.user.id,
       postId: id,
       deleteFromLinkedIn,
+      deleteFromDevTo,
     });
 
     // Invalidate cached post and listings

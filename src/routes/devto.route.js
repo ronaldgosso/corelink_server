@@ -1,0 +1,46 @@
+import { Router } from 'express';
+import {
+  handleCreateDevToArticle,
+  handleGetDevToArticles,
+  handleGetDevToArticleById,
+  handleUpdateDevToArticle,
+  handleGetDevToProfile,
+  handleCrossPostToDevTo,
+  handleConnectDevTo,
+  handleDisconnectDevTo,
+  handleGetConnectionStatus,
+  handleDeleteDevToArticle,
+} from '../controllers/devto.controller.js';
+import { requireAuth, optionalAuth } from '../middlewares/auth.middleware.js';
+
+const router = Router();
+
+// Account Connection & Credential Vault (requires user authentication)
+router.post('/connect', requireAuth, handleConnectDevTo);
+router.delete('/disconnect', requireAuth, handleDisconnectDevTo);
+router.get('/status', requireAuth, handleGetConnectionStatus);
+
+// Verify DEV.to API key & profile
+router.get('/me', optionalAuth, handleGetDevToProfile);
+
+// List user articles on DEV.to
+router.get('/articles', optionalAuth, handleGetDevToArticles);
+
+// Create / Publish an article directly to DEV.to
+router.post('/articles', optionalAuth, handleCreateDevToArticle);
+router.post('/publish', optionalAuth, handleCreateDevToArticle);
+
+// Get single DEV.to article by ID
+router.get('/articles/:id', optionalAuth, handleGetDevToArticleById);
+
+// Update existing DEV.to article
+router.put('/articles/:id', optionalAuth, handleUpdateDevToArticle);
+
+// Delete existing DEV.to article
+router.delete('/articles/:id', optionalAuth, handleDeleteDevToArticle);
+
+// Cross-post an existing CoreLink post to DEV.to (requires Corelink authentication)
+router.post('/crosspost/:id', requireAuth, handleCrossPostToDevTo);
+
+export default router;
+

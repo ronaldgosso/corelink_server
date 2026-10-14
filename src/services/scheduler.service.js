@@ -1,4 +1,4 @@
-import { LinkedInService } from './linkedin.service.js';
+import { PublishService } from './publish.service.js';
 
 class SchedulerService {
   constructor() {
@@ -39,7 +39,7 @@ class SchedulerService {
 
     this.isProcessing = true;
     try {
-      const summary = await LinkedInService.processCronPublishingQueue({
+      const summary = await PublishService.processCronPublishingQueue({
         batchLimit: 10,
       });
 

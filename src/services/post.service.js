@@ -77,11 +77,8 @@ export class PostService {
       throw new Error('Post content is required.');
     }
 
-    if (!scheduledAt) {
-      throw new Error('Scheduled date/time is required.');
-    }
-
-    const scheduledDateIso = this.parseScheduledDate(scheduledAt, timezoneOffset);
+    const resolvedScheduledAt = scheduledAt || new Date().toISOString();
+    const scheduledDateIso = this.parseScheduledDate(resolvedScheduledAt, timezoneOffset);
     const normalizedPlatforms = this.normalizePlatforms(platforms, target);
 
     const insertPayload = {

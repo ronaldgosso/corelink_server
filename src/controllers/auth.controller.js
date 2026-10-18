@@ -157,6 +157,31 @@ export const handleDevLogin = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/auth/reviewer-login
+ * Dedicated reviewer login for app store/play store review
+ */
+export const handleReviewerLogin = async (req, res) => {
+  try {
+    const { email, name, reviewerToken } = req.body || {};
+    const result = await AuthService.reviewerLogin({ email, name, reviewerToken });
+    return res.status(200).json({
+      success: true,
+      source: "REVIEWER_SESSION",
+      message: "Reviewer test session generated successfully",
+      token: result.token,
+      profile: result.profile,
+      user: result.profile,
+    });
+  } catch (error) {
+    console.error("Reviewer login error:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || "Failed to generate reviewer session",
+    });
+  }
+};
+
 export const handleLinkedInCallback = async (req, res) => {
   const clientId = config.linkedin.clientId || "77wtiyb9nrkwzr";
   const retryAuthUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${clientId}&redirect_uri=https%3A%2F%2Fcorelink-server.vercel.app%2Fapi%2Fauth%2Flinkedin%2Fcallback&scope=openid%20profile%20email%20w_member_social`;

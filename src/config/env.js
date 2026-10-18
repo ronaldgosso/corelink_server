@@ -31,6 +31,13 @@ export const config = {
     cronSecret: process.env.CRON_SECRET || '',
   },
 
+  // Reviewer bypass for app store review/testing
+  reviewer: {
+    bypassEnabled: process.env.REVIEWER_BYPASS_ENABLED === 'true' || process.env.REVIEWER_BYPASS_ENABLED === true,
+    bypassToken: process.env.REVIEWER_BYPASS_TOKEN || '',
+    emails: (process.env.REVIEWER_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean),
+  },
+
   // LinkedIn OAuth 2.0 & REST API Credentials
   linkedin: {
     clientId: process.env.LINKEDIN_CLIENT_ID || '',

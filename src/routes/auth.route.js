@@ -5,6 +5,7 @@ import {
   handleGetLinkedInAuthUrl,
   handleLinkedInLoginRedirect,
   handleDevLogin,
+  handleReviewerLogin,
   handleGetMe,
   handleDisconnect,
 } from "../controllers/auth.controller.js";
@@ -20,6 +21,10 @@ router.get("/linkedin/login", handleLinkedInLoginRedirect);
 
 // Public: Developer test login for local web development
 router.post("/dev-login", handleDevLogin);
+
+// Public: Reviewer test login for app store/play store review
+router.post("/reviewer-login", handleReviewerLogin);
+router.post("/reviewer", handleReviewerLogin);
 
 // Public: Browser OAuth redirect callback from LinkedIn (supports Web & Mobile)
 router.get("/linkedin/callback", handleLinkedInCallback);

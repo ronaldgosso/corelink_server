@@ -342,4 +342,24 @@ export class AuthService {
       },
     };
   }
+
+  /**
+   * Reviewer login for Play Store/App review testing
+   * Issues a session token for allowed reviewer emails with optional token check
+   */
+  static async reviewerLogin({ email, name, reviewerToken } = {}) {
+    if (!config.reviewer || !config.reviewer.bypassEnabled) {
+      throw new Error("Reviewer bypass is disabled.");
+    }
+    const allowed = Array.isArray(config.reviewer.emails) ? config.reviewer.emails : [];
+    if (email && allowed.length > 0 && !allowed.includes(email)) {
+      throw new Error("Reviewer email not allowed.");
+    }
+    if (config.reviewer.bypassToken) {
+      if (reviewerToken !== config.reviewer.bypassToken) {
+        throw new Error("Invalid reviewer token.");
+      }
+    }
+    return AuthService.devLogin({ email: email || (allowed[0] || null), name });
+  }
 }
